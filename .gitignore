@@ -1,0 +1,27 @@
+# Jangan upload file environment
+.env
+supabase/.env
+.env.local
+
+# Folder sementara Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Node modules jika kamu pakai Node.js
+node_modules/
+*.log
+
+# Sistem OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.sock
+docker-compose.override.yml
+
+# VS Code settings
+.vscode/
+
+# Volume atau direktori buatan container
+volumes/
