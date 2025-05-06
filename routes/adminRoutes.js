@@ -28,5 +28,6 @@ router.get(
   authorizeRole("Admin", "Superadmin"),
   adminController.getDaftarTamu
 );
+router.delete("/tamu/:id", authenticateToken, adminController.hapusTamu);
 
 module.exports = router;

@@ -268,3 +268,64 @@ exports.getDaftarTamu = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.hapusTamu = async (req, res) => {
+  const { role } = req.user;
+
+  if (role.toLowerCase() !== "superadmin") {
+    return res.status(403).json({
+      message:
+        "Akses ditolak: hanya Superadmin yang dapat menghapus data tamu.",
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    // Ambil URL tanda tangan dari database
+    const result = await pool.query(
+      `SELECT "Tanda_Tangan" FROM "Buku_Tamu" WHERE "ID_Buku_Tamu" = $1`,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Data tamu tidak ditemukan." });
+    }
+
+    const tandaTanganUrl = result.rows[0].Tanda_Tangan;
+
+    // Ekstrak nama file dari URL
+    // Contoh URL: http://127.0.0.1:54321/storage/v1/object/public/tanda-tangan/tanda_tangan/1746421162012_Screenshot_1.png
+    const match = tandaTanganUrl.match(/tanda_tangan\/(.+)$/);
+    if (match && match[1]) {
+      const filePath = `tanda_tangan/${match[1]}`;
+
+      const { error: deleteError } = await supabase.storage
+        .from("tanda-tangan")
+        .remove([filePath]);
+
+      if (deleteError) {
+        console.error(
+          "Gagal menghapus file dari storage:",
+          deleteError.message
+        );
+        return res.status(500).json({
+          message: "Gagal menghapus file tanda tangan dari storage.",
+          error: deleteError.message,
+        });
+      }
+    } else {
+      console.warn(
+        "Format URL tanda tangan tidak valid, file tidak dapat dihapus."
+      );
+    }
+
+    // Hapus data tamu dari database
+    await pool.query(`DELETE FROM "Buku_Tamu" WHERE "ID_Buku_Tamu" = $1`, [id]);
+
+    res.json({ message: "Data tamu dan tanda tangan berhasil dihapus." });
+  } catch (err) {
+    console.error("Terjadi kesalahan:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
