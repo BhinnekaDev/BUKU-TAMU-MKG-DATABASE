@@ -1,24 +1,11 @@
-const pool = require("../db");
+const pool = require("@/db");
 const bcrypt = require("bcrypt");
-const supabase = require("../lib/supabaseClient");
 const jwt = require("jsonwebtoken");
+const supabase = require("@/lib/supabaseClient");
+const { isStillLoggedInSession } = require("@/utils/sessionValidator");
+const logActivity = require("@/helpers/logActivity");
 
-function getClientIp(req) {
-  return (
-    req.headers["x-forwarded-for"] ||
-    req.socket?.remoteAddress?.replace("::ffff:", "") ||
-    "UNKNOWN"
-  );
-}
-
-async function isStillLoggedIn(userIdField, userIdValue) {
-  const result = await pool.query(
-    `SELECT * FROM "Loginlog" WHERE "${userIdField}" = $1 AND "Timestamp_Logout" IS NULL`,
-    [userIdValue]
-  );
-  return result.rows.length > 0;
-}
-
+// ====================== REGISTER ======================
 exports.registerPengunjung = async (req, res) => {
   const {
     Nama_Depan_Pengunjung,
@@ -92,9 +79,19 @@ exports.registerPengunjung = async (req, res) => {
       ]
     );
 
+    const insertedPengunjung = result.rows[0];
+
+    await logActivity({
+      id: insertedPengunjung.ID_Pengunjung,
+      role: "pengunjung",
+      action: "REGISTER",
+      description: "Registrasi akun pengunjung baru",
+      req,
+    });
+
     res.status(201).json({
       message: "Register pengunjung sukses",
-      user: result.rows[0],
+      user: insertedPengunjung,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -120,25 +117,29 @@ exports.loginPengunjung = async (req, res) => {
     );
     if (!match) return res.status(401).json({ message: "Password salah" });
 
-    // Cek login aktif
-    if (await isStillLoggedIn("ID_Pengunjung", user.ID_Pengunjung)) {
+    const alreadyLoggedIn = await isStillLoggedInSession(
+      "pengunjung",
+      user.ID_Pengunjung
+    );
+    if (alreadyLoggedIn) {
       return res.status(403).json({
         message: "Pengunjung sudah login, harap logout terlebih dahulu.",
       });
     }
 
-    // Buat token
     const token = jwt.sign(
       { id: user.ID_Pengunjung, role: "pengunjung" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // Simpan token dan IP
-    await pool.query(
-      `INSERT INTO "Loginlog" ("ID_Pengunjung", "IP_Address", "Token_Akses") VALUES ($1, $2, $3)`,
-      [user.ID_Pengunjung, getClientIp(req), token]
-    );
+    await logActivity({
+      id: user.ID_Pengunjung,
+      role: "pengunjung",
+      action: "LOGIN",
+      description: "Pengunjung berhasil login",
+      req,
+    });
 
     res.json({ message: "Login pengunjung sukses", token });
   } catch (err) {
@@ -151,26 +152,15 @@ exports.logoutPengunjung = async (req, res) => {
   const pengunjungId = req.user.id;
 
   try {
-    const result = await pool.query(
-      `SELECT "ID_Loginlog" FROM "Loginlog"
-       WHERE "ID_Pengunjung" = $1 AND "Token_Akses" = $2 AND "Timestamp_Logout" IS NULL
-       ORDER BY "ID_Loginlog" DESC LIMIT 1`,
-      [pengunjungId, req.headers["authorization"].split(" ")[1]]
-    );
+    await logActivity({
+      id: pengunjungId,
+      role: "pengunjung",
+      action: "LOGOUT",
+      description: "Pengunjung melakukan logout",
+      req,
+    });
 
-    const log = result.rows[0];
-    if (!log) {
-      return res.status(400).json({ message: "Tidak ada sesi login aktif" });
-    }
-
-    await pool.query(
-      `UPDATE "Loginlog"
-       SET "Timestamp_Logout" = CURRENT_TIMESTAMP, "Token_Akses" = NULL
-       WHERE "ID_Loginlog" = $1`,
-      [log.ID_Loginlog]
-    );
-
-    res.json({ message: "Logout pengunjung sukses, token tidak berlaku lagi" });
+    res.json({ message: "Logout pengunjung sukses." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -178,11 +168,18 @@ exports.logoutPengunjung = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
+    if (!isStillLoggedInSession(req)) {
+      return res
+        .status(401)
+        .json({ message: "Sesi tidak ditemukan. Silakan login kembali." });
+    }
+
     const { id } = req.user;
     const result = await pool.query(
       `SELECT * FROM "Pengunjung" WHERE "ID_Pengunjung" = $1`,
       [id]
     );
+
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -191,6 +188,12 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
+    if (!isStillLoggedInSession(req)) {
+      return res
+        .status(401)
+        .json({ message: "Sesi tidak ditemukan. Silakan login kembali." });
+    }
+
     const { id } = req.user;
     const {
       Nama_Depan_Pengunjung,
@@ -263,14 +266,109 @@ exports.updateProfile = async (req, res) => {
     `;
 
     await pool.query(query, values);
+
+    await logActivity({
+      id,
+      role: "pengunjung",
+      action: "UPDATE_PROFILE",
+      description: "Pengunjung memperbarui profil",
+      req,
+    });
+
     res.json({ message: "Profil pengunjung berhasil diperbarui" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// exports.uploadProfilePicture = async (req, res) => {
+//   try {
+//     if (!isStillLoggedInSession(req)) {
+//       return res.status(401).json({ message: "Sesi tidak ditemukan. Silakan login kembali." });
+//     }
+
+//     const { id } = req.user;
+//     const { file } = req;
+
+//     if (!file) {
+//       return res.status(400).json({ message: "Tidak ada file yang diunggah" });
+//     }
+
+//     const { data, error } = await supabase.storage
+//       .from("profile-pictures")
+//       .upload(`pengunjung/${id}/${file.originalname}`, file.buffer, {
+//         contentType: file.mimetype,
+//         upsert: true,
+//       });
+
+//     if (error) {
+//       return res.status(500).json({ error: error.message });
+//     }
+
+//     const imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${data.Key}`;
+
+//     await pool.query(
+//       `UPDATE "Pengunjung" SET "Foto_Pengunjung" = $1 WHERE "ID_Pengunjung" = $2`,
+//       [imageUrl, id]
+//     );
+
+//     await logActivity({
+//       id,
+//       role: "pengunjung",
+//       action: "UPLOAD_PROFILE_PICTURE",
+//       description: "Pengunjung mengunggah foto profil",
+//       req,
+//     });
+
+//     res.json({ message: "Foto profil berhasil diunggah", imageUrl });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// exports.deleteProfilePicture = async (req, res) => {
+//   try {
+//     if (!isStillLoggedInSession(req)) {
+//       return res.status(401).json({ message: "Sesi tidak ditemukan. Silakan login kembali." });
+//     }
+
+//     const { id } = req.user;
+
+//     const { data, error } = await supabase.storage
+//       .from("profile-pictures")
+//       .remove([`pengunjung/${id}`]);
+
+//     if (error) {
+//       return res.status(500).json({ error: error.message });
+//     }
+
+//     await pool.query(
+//       `UPDATE "Pengunjung" SET "Foto_Pengunjung" = NULL WHERE "ID_Pengunjung" = $1`,
+//       [id]
+//     );
+
+//     await logActivity({
+//       id,
+//       role: "pengunjung",
+//       action: "DELETE_PROFILE_PICTURE",
+//       description: "Pengunjung menghapus foto profil",
+//       req,
+//     });
+
+//     res.json({ message: "Foto profil berhasil dihapus" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 exports.buatKunjunganTamu = async (req, res) => {
   try {
+    if (!isStillLoggedInSession(req)) {
+      return res
+        .status(401)
+        .json({ message: "Sesi tidak ditemukan. Silakan login kembali." });
+    }
+
     const { Tujuan, ID_Stasiun } = req.body;
     const { id: ID_Pengunjung } = req.user;
 
@@ -285,7 +383,7 @@ exports.buatKunjunganTamu = async (req, res) => {
 
     // Upload ke Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("tanda-tangan")
+      .from("buku-tamu-mkg")
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
       });
@@ -297,14 +395,14 @@ exports.buatKunjunganTamu = async (req, res) => {
       });
     }
 
-    // Ambil public URL dari file yang diupload
+    // Ambil public URL dari file
     const { data: publicUrlData } = supabase.storage
-      .from("tanda-tangan")
+      .from("buku-tamu-mkg")
       .getPublicUrl(filePath);
 
-    const publicUrl = publicUrlData.publicUrl;
+    const publicUrl = publicUrlData?.publicUrl;
 
-    // Simpan data kunjungan ke tabel Buku_Tamu
+    // Simpan ke tabel Buku_Tamu
     const { error: insertError } = await supabase.from("Buku_Tamu").insert({
       ID_Pengunjung,
       ID_Stasiun,
@@ -319,6 +417,15 @@ exports.buatKunjunganTamu = async (req, res) => {
         detail: insertError.message,
       });
     }
+
+    // Log aktivitas
+    await logActivity({
+      id: ID_Pengunjung,
+      role: "pengunjung",
+      action: "CREATE_KUNJUNGAN",
+      description: "Pengunjung mengisi buku tamu",
+      req,
+    });
 
     res.status(201).json({ message: "Data kunjungan berhasil disimpan" });
   } catch (err) {

@@ -1,10 +1,11 @@
+require("module-alias/register");
 const express = require("express");
 const router = express.Router();
-const adminController = require("../controllers/adminController");
+const adminController = require("@/controllers/adminController");
 const {
   authenticateToken,
   authorizeRole,
-} = require("../middleware/authMiddleware");
+} = require("@/middleware/authMiddleware");
 
 router.post("/register", adminController.registerAdmin);
 router.post("/login", adminController.loginAdmin);

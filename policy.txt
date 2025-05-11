@@ -1,1 +1,0 @@
-drop policy "Allow delete for service_role only" on storage.objects; --> http://127.0.0.1:54323/project/default/storage/policies

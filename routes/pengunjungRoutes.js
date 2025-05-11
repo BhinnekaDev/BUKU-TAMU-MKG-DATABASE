@@ -1,11 +1,12 @@
+require("module-alias/register");
 const express = require("express");
 const router = express.Router();
-const pengunjungController = require("../controllers/pengunjungController");
+const pengunjungController = require("@/controllers/pengunjungController");
 const {
   authenticateToken,
   authorizeRole,
-} = require("../middleware/authMiddleware");
-const upload = require("../middleware/uploadMulter");
+} = require("@/middleware/authMiddleware");
+const upload = require("@/middleware/uploadMulter");
 
 router.post("/register", pengunjungController.registerPengunjung);
 router.post("/login", pengunjungController.loginPengunjung);
