@@ -2,92 +2,90 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class AlamatDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  Provinsi?: string;
+  province_id?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  Kabupaten?: string;
+  regency_id?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  Kecamatan?: string;
+  district_id?: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  Kelurahan?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
-  Kode_Pos?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  RT?: number;
-
-  @ApiProperty()
-  @IsOptional()
-  RW?: number;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
-  Alamat_Jalan?: string;
+  village_id?: string;
 }
 
 export enum AsalPengunjung {
   BMKG = 'BMKG',
-  PEMPROV = 'PEMPROV',
-  PEMKAB = 'PEMKAB',
-  PEMKOT = 'PEMKOT',
-  UNIVERSITAS = 'UNIVERSITAS',
-  UMUM = 'UMUM',
+  Dinas = 'Dinas',
+  Universitas = 'Universitas',
+  Media = 'Media',
+  Lembaga_Non_Pemerintahan = 'Lembaga Non Pemerintahan',
+  Umum = 'Umum',
 }
 
 export class UpdatePengunjungDto {
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({
+    required: false,
+    description: 'ID pengunjung (bisa dari token header atau body)',
+  })
   @IsOptional()
+  @IsString()
+  id_pengunjung?: string;
+
+  @ApiProperty({ required: false, description: 'Access token JWT pengunjung' })
+  @IsOptional()
+  @IsString()
+  access_token?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   password?: string;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ required: false })
   @IsOptional()
+  @IsString()
   nama_depan_pengunjung?: string;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ required: false })
   @IsOptional()
+  @IsString()
   nama_belakang_pengunjung?: string;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ required: false })
   @IsOptional()
+  @IsString()
   no_telepon_pengunjung?: string;
 
-  @ApiProperty({ enum: AsalPengunjung })
+  @ApiProperty({ enum: AsalPengunjung, required: false })
+  @IsOptional()
   @IsEnum(AsalPengunjung)
   asal_pengunjung?: AsalPengunjung;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  @IsOptional()
   keterangan_asal_pengunjung?: string;
 
-  @ApiProperty({ type: AlamatDto })
+  @ApiProperty({ type: AlamatDto, required: false })
   @IsOptional()
   alamat?: AlamatDto;
 
-  @ApiProperty()
+  @ApiProperty({
+    type: 'string',
+    format: 'binary',
+    required: false,
+    description: 'Foto pengunjung',
+  })
   @IsOptional()
-  @IsString()
-  @IsOptional()
-  foto_pengunjung?: string;
+  foto_pengunjung?: any;
 }

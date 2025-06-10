@@ -4,42 +4,32 @@ import { IsEmail, IsEnum, IsString } from 'class-validator';
 export class AlamatDto {
   @ApiProperty()
   @IsString()
-  Provinsi?: string;
+  province_id: string;
 
   @ApiProperty()
   @IsString()
-  Kabupaten?: string;
+  regency_id: string;
 
   @ApiProperty()
   @IsString()
-  Kecamatan?: string;
+  district_id: string;
 
   @ApiProperty()
   @IsString()
-  Kelurahan?: string;
+  village_id: string;
 
   @ApiProperty()
   @IsString()
   Kode_Pos?: string;
-
-  @ApiProperty()
-  RT?: number;
-
-  @ApiProperty()
-  RW?: number;
-
-  @ApiProperty()
-  @IsString()
-  Alamat_Jalan?: string;
 }
 
 export enum AsalPengunjung {
   BMKG = 'BMKG',
-  PEMPROV = 'PEMPROV',
-  PEMKAB = 'PEMKAB',
-  PEMKOT = 'PEMKOT',
-  UNIVERSITAS = 'UNIVERSITAS',
-  UMUM = 'UMUM',
+  Dinas = 'Dinas',
+  Universitas = 'Universitas',
+  Media = 'Media',
+  Lembaga_Non_Pemerintahan = 'Lembaga Non Pemerintahan',
+  Umum = 'Umum',
 }
 
 export class RegisterPengunjungDto {

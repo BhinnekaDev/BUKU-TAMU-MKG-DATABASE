@@ -1,55 +1,103 @@
 import { IsiBukuTamuDto } from '@/pengunjung/dto/isi-buku-tamu.dto';
 import { LoginPengunjungDto } from '@/pengunjung/dto/login-pengunjung.dto';
+import { LogoutPengunjungDto } from '@/pengunjung/dto/logout-pengunjung.dto';
+import { ResetPasswordPengunjungDto } from '@/pengunjung/dto/reset-password-pengunjung.dto';
+import { UpdatePengunjungDto } from '@/pengunjung/dto/update-pengunjung.dto';
+import { WilayahResponseDto } from '@/pengunjung/dto/wilayah-response.dto';
 import { PengunjungService } from '@/pengunjung/pengunjung.service';
-import { UpdatePengunjungDto } from './dto/update-pengunjung.dto';
+import { Request } from 'express';
 export declare class PengunjungController {
     private readonly pengunjungService;
     constructor(pengunjungService: PengunjungService);
-    register(file: Express.Multer.File, body: any, ip: string, userAgent: string): Promise<{
+    getAll(): {
+        value: string;
+        label: string;
+    }[];
+    getProvinceById(id: string): Promise<WilayahResponseDto[]>;
+    getRegencyById(id: string): Promise<WilayahResponseDto[]>;
+    getDistrictById(id: string): Promise<WilayahResponseDto[]>;
+    getVillageById(id: string): Promise<WilayahResponseDto[]>;
+    register(file: Express.Multer.File, body: any, ip: string, req: Request): Promise<{
         message: string;
         id_pengunjung: string;
         email: string;
     }>;
-    login(dto: LoginPengunjungDto, ip: string, userAgent: string): Promise<{
+    getAllStasiun(): Promise<{
         message: string;
-        access_token: string;
-        user: {
-            id: string;
-            email: string;
-        };
-    }>;
-    logout(token: string, ip: string, userAgent: string): Promise<{
-        message: string;
-    }>;
-    getProfile(authHeader: string): Promise<{
-        ID_Pengunjung: any;
-        Nama_Depan_Pengunjung: any;
-        Nama_Belakang_Pengunjung: any;
-        Email_Pengunjung: any;
-        No_Telepon_Pengunjung: any;
-        Asal_Pengunjung: any;
-        Keterangan_Asal_Pengunjung: any;
-        Foto_Pengunjung: any;
-        Alamat: {
-            Provinsi: any;
-            Kabupaten: any;
-            Kecamatan: any;
-            Kelurahan: any;
-            Kode_Pos: any;
-            RT: any;
-            RW: any;
-            Alamat_Jalan: any;
+        data: {
+            ID_Stasiun: any;
+            Nama_Stasiun: any;
         }[];
     }>;
-    updateProfile(dto: UpdatePengunjungDto, authHeader: string, ip: string, userAgent: string, file: Express.Multer.File, req: Request): Promise<any>;
-    resetPassword(dto: {
+    login(dto: LoginPengunjungDto, ip: string, req: Request): Promise<{
+        message: string;
+        token: string;
+        refresh_token: string;
+        id_pengunjung: string;
         email: string;
-        new_password: string;
-    }, ip: string, userAgent: string): Promise<{
+        nama: string;
+    }>;
+    getJumlahPengunjung(authorization: string, user_id: string): Promise<{
+        hariIni: number;
+        mingguIni: number;
+        bulanIni: number;
+    }>;
+    logout(req: Request, dto: LogoutPengunjungDto): Promise<{
         message: string;
     }>;
-    isiBukuTamu(file: Express.Multer.File, dto: IsiBukuTamuDto, ip: string, userAgent: string, token: string): Promise<{
+    getProfile(access_token: string, user_id: string): Promise<{
+        ID_Pengunjung: string;
+        Nama_Depan_Pengunjung: string;
+        Nama_Belakang_Pengunjung: string;
+        Email_Pengunjung: string;
+        No_Telepon_Pengunjung: string;
+        Asal_Pengunjung: string;
+        Keterangan_Asal_Pengunjung: string;
+        Foto_Pengunjung: string | null;
+        Alamat: {
+            Provinsi: string;
+            Provinsi_ID: string;
+            Kabupaten: string;
+            Kabupaten_ID: string;
+            Kecamatan: string;
+            Kecamatan_ID: string;
+            Kelurahan: string;
+            Kelurahan_ID: string;
+        } | null;
+    }>;
+    updateProfile(dto: UpdatePengunjungDto, foto: Express.Multer.File, ip: string, req: Request, authHeader: string, idPengunjungHeader: string): Promise<{
+        message: string;
+        profile: {
+            auth: {
+                email: string;
+                password_updated: boolean;
+            };
+            pengunjung: any;
+            alamat: any;
+        };
+    }>;
+    resetPassword(dto: ResetPasswordPengunjungDto, ip: string, req: Request): Promise<{
         message: string;
     }>;
-    private extractToken;
+    isiBukuTamu(file: Express.Multer.File, dto: IsiBukuTamuDto, accessTokenHeader: string, userIdHeader: string, ip: string, req: Request): Promise<{
+        message: string;
+    }>;
+    getRiwayatBukuTamu(access_token: string, user_id: string): Promise<{
+        status: string;
+        data: never[];
+        message: string;
+    } | {
+        status: string;
+        data: {
+            id: any;
+            tujuan: any;
+            waktu_kunjungan: any;
+            tanda_tangan: any;
+            stasiun: any;
+            status: any;
+            pengunjung: string;
+            email: any;
+        }[];
+        message?: undefined;
+    }>;
 }

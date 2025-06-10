@@ -11,54 +11,49 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateAdminProfileDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
-const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 class UpdateAdminProfileDto {
-    nama_depan_admin;
-    nama_belakang_admin;
+    nama_depan;
+    nama_belakang;
     password;
-    foto_admin;
+    foto;
 }
 exports.UpdateAdminProfileDto = UpdateAdminProfileDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({
-        example: 'Budi',
+    (0, swagger_1.ApiProperty)({
         description: 'Nama depan admin',
+        required: false,
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], UpdateAdminProfileDto.prototype, "nama_depan_admin", void 0);
+], UpdateAdminProfileDto.prototype, "nama_depan", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({
-        example: 'Santoso',
+    (0, swagger_1.ApiProperty)({
         description: 'Nama belakang admin',
+        required: false,
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], UpdateAdminProfileDto.prototype, "nama_belakang_admin", void 0);
+], UpdateAdminProfileDto.prototype, "nama_belakang", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({
-        example: 'NewStrongPassword123',
-        description: 'Password baru (min 8 karakter)',
+    (0, swagger_1.ApiProperty)({
+        description: 'Password baru admin',
+        required: false,
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(8),
     __metadata("design:type", String)
 ], UpdateAdminProfileDto.prototype, "password", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({
+    (0, swagger_1.ApiProperty)({
         type: 'string',
         format: 'binary',
-        description: 'Foto admin dalam format JPG, JPEG, atau PNG',
+        required: false,
+        description: 'Foto admin',
     }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.ValidateIf)((_, value) => value !== null),
-    (0, class_validator_1.ValidateIf)((_, value) => value !== null),
-    (0, class_validator_1.IsString)({ message: 'Foto harus berupa string yang merepresentasikan file' }),
-    (0, class_transformer_1.Type)(() => Object),
     __metadata("design:type", Object)
-], UpdateAdminProfileDto.prototype, "foto_admin", void 0);
+], UpdateAdminProfileDto.prototype, "foto", void 0);
 //# sourceMappingURL=update-admin.dto.js.map

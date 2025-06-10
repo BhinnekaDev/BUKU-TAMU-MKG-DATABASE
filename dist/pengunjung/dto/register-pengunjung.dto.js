@@ -13,62 +13,46 @@ exports.RegisterPengunjungDto = exports.AsalPengunjung = exports.AlamatDto = voi
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class AlamatDto {
-    Provinsi;
-    Kabupaten;
-    Kecamatan;
-    Kelurahan;
+    province_id;
+    regency_id;
+    district_id;
+    village_id;
     Kode_Pos;
-    RT;
-    RW;
-    Alamat_Jalan;
 }
 exports.AlamatDto = AlamatDto;
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Provinsi", void 0);
+], AlamatDto.prototype, "province_id", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Kabupaten", void 0);
+], AlamatDto.prototype, "regency_id", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Kecamatan", void 0);
+], AlamatDto.prototype, "district_id", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Kelurahan", void 0);
+], AlamatDto.prototype, "village_id", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], AlamatDto.prototype, "Kode_Pos", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", Number)
-], AlamatDto.prototype, "RT", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", Number)
-], AlamatDto.prototype, "RW", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], AlamatDto.prototype, "Alamat_Jalan", void 0);
 var AsalPengunjung;
 (function (AsalPengunjung) {
     AsalPengunjung["BMKG"] = "BMKG";
-    AsalPengunjung["PEMPROV"] = "PEMPROV";
-    AsalPengunjung["PEMKAB"] = "PEMKAB";
-    AsalPengunjung["PEMKOT"] = "PEMKOT";
-    AsalPengunjung["UNIVERSITAS"] = "UNIVERSITAS";
-    AsalPengunjung["UMUM"] = "UMUM";
+    AsalPengunjung["Dinas"] = "Dinas";
+    AsalPengunjung["Universitas"] = "Universitas";
+    AsalPengunjung["Media"] = "Media";
+    AsalPengunjung["Lembaga_Non_Pemerintahan"] = "Lembaga Non Pemerintahan";
+    AsalPengunjung["Umum"] = "Umum";
 })(AsalPengunjung || (exports.AsalPengunjung = AsalPengunjung = {}));
 class RegisterPengunjungDto {
     email;

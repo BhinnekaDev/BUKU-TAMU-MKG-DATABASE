@@ -15,6 +15,7 @@ const class_validator_1 = require("class-validator");
 class IsiBukuTamuDto {
     tujuan;
     id_stasiun;
+    waktu_kunjungan;
 }
 exports.IsiBukuTamuDto = IsiBukuTamuDto;
 __decorate([
@@ -35,4 +36,13 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], IsiBukuTamuDto.prototype, "id_stasiun", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Waktu kunjungan dalam format "Hari, DD MMMM YYYY, HH.mm"',
+        example: 'Senin, 10 Juni 2024, 14.30',
+        required: false,
+    }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "waktu_kunjungan", void 0);
 //# sourceMappingURL=isi-buku-tamu.dto.js.map

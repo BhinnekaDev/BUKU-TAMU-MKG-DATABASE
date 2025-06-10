@@ -1,6 +1,6 @@
 export declare class UpdateAdminProfileDto {
-    nama_depan_admin?: string;
-    nama_belakang_admin?: string;
+    nama_depan: string;
+    nama_belakang: string;
     password?: string;
-    foto_admin?: Express.Multer.File;
+    foto: any;
 }

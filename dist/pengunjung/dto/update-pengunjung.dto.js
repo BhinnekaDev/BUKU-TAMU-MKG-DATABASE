@@ -13,72 +13,48 @@ exports.UpdatePengunjungDto = exports.AsalPengunjung = exports.AlamatDto = void 
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class AlamatDto {
-    Provinsi;
-    Kabupaten;
-    Kecamatan;
-    Kelurahan;
-    Kode_Pos;
-    RT;
-    RW;
-    Alamat_Jalan;
+    province_id;
+    regency_id;
+    district_id;
+    village_id;
 }
 exports.AlamatDto = AlamatDto;
 __decorate([
-    (0, swagger_1.ApiProperty)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Provinsi", void 0);
+], AlamatDto.prototype, "province_id", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Kabupaten", void 0);
+], AlamatDto.prototype, "regency_id", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Kecamatan", void 0);
+], AlamatDto.prototype, "district_id", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], AlamatDto.prototype, "Kelurahan", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], AlamatDto.prototype, "Kode_Pos", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], AlamatDto.prototype, "RT", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], AlamatDto.prototype, "RW", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], AlamatDto.prototype, "Alamat_Jalan", void 0);
+], AlamatDto.prototype, "village_id", void 0);
 var AsalPengunjung;
 (function (AsalPengunjung) {
     AsalPengunjung["BMKG"] = "BMKG";
-    AsalPengunjung["PEMPROV"] = "PEMPROV";
-    AsalPengunjung["PEMKAB"] = "PEMKAB";
-    AsalPengunjung["PEMKOT"] = "PEMKOT";
-    AsalPengunjung["UNIVERSITAS"] = "UNIVERSITAS";
-    AsalPengunjung["UMUM"] = "UMUM";
+    AsalPengunjung["Dinas"] = "Dinas";
+    AsalPengunjung["Universitas"] = "Universitas";
+    AsalPengunjung["Media"] = "Media";
+    AsalPengunjung["Lembaga_Non_Pemerintahan"] = "Lembaga Non Pemerintahan";
+    AsalPengunjung["Umum"] = "Umum";
 })(AsalPengunjung || (exports.AsalPengunjung = AsalPengunjung = {}));
 class UpdatePengunjungDto {
+    id_pengunjung;
+    access_token;
     password;
     nama_depan_pengunjung;
     nama_belakang_pengunjung;
@@ -90,51 +66,69 @@ class UpdatePengunjungDto {
 }
 exports.UpdatePengunjungDto = UpdatePengunjungDto;
 __decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
+    (0, swagger_1.ApiProperty)({
+        required: false,
+        description: 'ID pengunjung (bisa dari token header atau body)',
+    }),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdatePengunjungDto.prototype, "id_pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false, description: 'Access token JWT pengunjung' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdatePengunjungDto.prototype, "access_token", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdatePengunjungDto.prototype, "password", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdatePengunjungDto.prototype, "nama_depan_pengunjung", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdatePengunjungDto.prototype, "nama_belakang_pengunjung", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdatePengunjungDto.prototype, "no_telepon_pengunjung", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ enum: AsalPengunjung }),
+    (0, swagger_1.ApiProperty)({ enum: AsalPengunjung, required: false }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(AsalPengunjung),
     __metadata("design:type", String)
 ], UpdatePengunjungDto.prototype, "asal_pengunjung", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
+    (0, swagger_1.ApiProperty)({ required: false }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdatePengunjungDto.prototype, "keterangan_asal_pengunjung", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ type: AlamatDto }),
+    (0, swagger_1.ApiProperty)({ type: AlamatDto, required: false }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", AlamatDto)
 ], UpdatePengunjungDto.prototype, "alamat", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)(),
+    (0, swagger_1.ApiProperty)({
+        type: 'string',
+        format: 'binary',
+        required: false,
+        description: 'Foto pengunjung',
+    }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UpdatePengunjungDto.prototype, "foto_pengunjung", void 0);
 //# sourceMappingURL=update-pengunjung.dto.js.map

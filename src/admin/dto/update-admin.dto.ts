@@ -1,42 +1,37 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateAdminProfileDto {
-  @ApiPropertyOptional({
-    example: 'Budi',
+  @ApiProperty({
     description: 'Nama depan admin',
+    required: false,
   })
   @IsOptional()
   @IsString()
-  nama_depan_admin?: string;
+  nama_depan: string;
 
-  @ApiPropertyOptional({
-    example: 'Santoso',
+  @ApiProperty({
     description: 'Nama belakang admin',
+    required: false,
   })
   @IsOptional()
   @IsString()
-  nama_belakang_admin?: string;
+  nama_belakang: string;
 
-  @ApiPropertyOptional({
-    example: 'NewStrongPassword123',
-    description: 'Password baru (min 8 karakter)',
+  @ApiProperty({
+    description: 'Password baru admin',
+    required: false,
   })
   @IsOptional()
   @IsString()
-  @MinLength(8)
   password?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: 'string',
     format: 'binary',
-    description: 'Foto admin dalam format JPG, JPEG, atau PNG',
+    required: false,
+    description: 'Foto admin',
   })
   @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @ValidateIf((_, value) => value !== null)
-  @IsString({ message: 'Foto harus berupa string yang merepresentasikan file' })
-  @Type(() => Object)
-  foto_admin?: Express.Multer.File;
+  foto: any;
 }

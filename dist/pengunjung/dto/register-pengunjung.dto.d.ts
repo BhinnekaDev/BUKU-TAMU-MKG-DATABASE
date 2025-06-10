@@ -1,20 +1,17 @@
 export declare class AlamatDto {
-    Provinsi?: string;
-    Kabupaten?: string;
-    Kecamatan?: string;
-    Kelurahan?: string;
+    province_id: string;
+    regency_id: string;
+    district_id: string;
+    village_id: string;
     Kode_Pos?: string;
-    RT?: number;
-    RW?: number;
-    Alamat_Jalan?: string;
 }
 export declare enum AsalPengunjung {
     BMKG = "BMKG",
-    PEMPROV = "PEMPROV",
-    PEMKAB = "PEMKAB",
-    PEMKOT = "PEMKOT",
-    UNIVERSITAS = "UNIVERSITAS",
-    UMUM = "UMUM"
+    Dinas = "Dinas",
+    Universitas = "Universitas",
+    Media = "Media",
+    Lembaga_Non_Pemerintahan = "Lembaga Non Pemerintahan",
+    Umum = "Umum"
 }
 export declare class RegisterPengunjungDto {
     email: string;

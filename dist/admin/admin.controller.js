@@ -15,8 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const admin_service_1 = require("./admin.service");
 const login_admin_dto_1 = require("./dto/login-admin.dto");
+const logout_admin_dto_1 = require("./dto/logout-admin.dto");
 const register_admin_dto_1 = require("./dto/register-admin.dto");
 const reset_password_admin_dto_1 = require("./dto/reset-password-admin.dto");
+const ubah_status_buku_tamu_dto_1 = require("./dto/ubah-status-buku-tamu.dto");
 const update_admin_dto_1 = require("./dto/update-admin.dto");
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
@@ -40,70 +42,107 @@ let AdminController = class AdminController {
         const userAgent = req.headers['user-agent'] || null;
         return this.adminService.login(dto, ip, userAgent);
     }
-    async logout(req) {
-        const token = req.headers.authorization?.split(' ')[1];
+    async logout(dto, ip, req) {
+        const userAgent = req.headers['user-agent'] || null;
+        console.log('Logout Admin DTO:', dto);
+        console.log('IP Address:', ip);
+        console.log('User Agent:', userAgent);
+        return this.adminService.logout(dto, ip, userAgent);
+    }
+    async getProfile(access_token, user_id) {
+        return this.adminService.getProfile(user_id, access_token);
+    }
+    async updateProfile(dto, req, foto, access_token, user_id) {
+        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+            req.socket.remoteAddress ||
+            null;
+        const userAgent = req.headers['user-agent'] ?? undefined;
+        return this.adminService.updateProfile({
+            ...dto,
+            access_token,
+            user_id,
+            ip: ip ?? undefined,
+            user_agent: userAgent,
+        }, foto);
+    }
+    async resetPassword(dto, req) {
         const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
             req.socket.remoteAddress ||
             null;
         const userAgent = req.headers['user-agent'] || null;
-        if (!token) {
-            throw new common_1.UnauthorizedException('Token tidak ditemukan');
-        }
-        return this.adminService.logout(token, ip, userAgent);
-    }
-    async getProfile(authHeader) {
-        const token = this.extractToken(authHeader);
-        return this.adminService.getProfile(token);
-    }
-    async updateProfile(authHeader, dto, foto_admin, req) {
-        const token = this.extractToken(authHeader);
-        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-            req.socket.remoteAddress ||
-            null;
-        const userAgent = req.headers['user-agent'] || null;
-        return this.adminService.updateProfile(token, dto, ip, userAgent, foto_admin);
-    }
-    async resetPassword(dto, req, userAgent) {
-        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-            req.socket.remoteAddress ||
-            null;
         return this.adminService.resetPassword(dto, ip, userAgent);
     }
-    async getBukuTamu(authHeader, req) {
-        const token = this.extractToken(authHeader);
-        return this.adminService.getBukuTamu(token);
+    async getBukuTamu(req) {
+        const access_token = req.headers['access_token']?.toString();
+        const user_id = req.headers['user_id']?.toString();
+        if (!access_token || !user_id) {
+            throw new common_1.BadRequestException('Header access_token dan user_id wajib diisi');
+        }
+        return this.adminService.getBukuTamu(access_token, user_id);
+    }
+    async getHariIni(authorization, user_id) {
+        const access_token = authorization?.replace('Bearer ', '');
+        return this.adminService.getBukuTamuHariIni(access_token, user_id);
+    }
+    async getMingguIni(authorization, user_id) {
+        const access_token = authorization?.replace('Bearer ', '');
+        return this.adminService.getBukuTamuMingguIni(access_token, user_id);
+    }
+    async getBulanIni(authorization, user_id) {
+        const access_token = authorization?.replace('Bearer ', '');
+        return this.adminService.getBukuTamuBulanIni(access_token, user_id);
+    }
+    async getByPeriod(period, authorization, user_id) {
+        const access_token = authorization?.replace('Bearer ', '');
+        return this.adminService.getBukuTamuByPeriod(access_token, user_id, period);
+    }
+    async ubahStatusBukuTamu(idBukuTamu, dto, req) {
+        const access_token = req.headers['access_token']?.toString();
+        const user_id = req.headers['user_id']?.toString();
+        if (!access_token || !user_id) {
+            throw new common_1.BadRequestException('Header access_token dan user_id wajib diisi');
+        }
+        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+            req.socket.remoteAddress ||
+            null;
+        const userAgent = req.headers['user-agent'] ?? null;
+        return this.adminService.ubahStatusBukuTamu(idBukuTamu, dto, access_token, user_id, ip, userAgent);
     }
     async deleteBukuTamu(id, req) {
-        const token = req.headers.authorization?.split(' ')[1];
+        const access_token = req.headers['access_token']?.toString();
+        const user_id = req.headers['user_id']?.toString();
+        if (!user_id || !access_token) {
+            throw new common_1.UnauthorizedException('user_id atau access_token tidak ditemukan');
+        }
         const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
             req.socket.remoteAddress ||
             null;
         const userAgent = req.headers['user-agent'] || null;
-        if (!token) {
-            throw new common_1.UnauthorizedException('Token tidak ditemukan');
-        }
-        return this.adminService.deleteBukuTamu(id, token, ip, userAgent);
+        return this.adminService.deleteBukuTamu(id, user_id, access_token, ip, userAgent);
     }
     async getDashboard(req) {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) {
-            throw new common_1.UnauthorizedException('Token tidak ditemukan');
+        const access_token = req.headers['access_token']?.toString();
+        const user_id = req.headers['user_id']?.toString();
+        if (!user_id || !access_token) {
+            throw new common_1.UnauthorizedException('user_id atau access_token tidak ditemukan');
         }
-        return this.adminService.getDashboard(token);
+        return this.adminService.getDashboard(user_id, access_token);
     }
-    async getKunjungan(req, search, startDate, endDate) {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) {
-            throw new common_1.UnauthorizedException('Token tidak ditemukan');
+    async getDaftarKunjungan(req, search, startDate, endDate) {
+        const access_token = req.headers['access_token']?.toString();
+        const user_id = req.headers['user_id']?.toString();
+        if (!user_id || !access_token) {
+            throw new common_1.UnauthorizedException('user_id atau access_token tidak ditemukan');
         }
-        return this.adminService.getDaftarKunjungan(token, search, startDate, endDate);
+        return this.adminService.getDaftarKunjungan(user_id, access_token, search, startDate, endDate);
     }
-    async getStatistikKunjungan(req) {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) {
-            throw new common_1.UnauthorizedException('Token tidak ditemukan');
+    async getStatistik(req) {
+        const access_token = req.headers['access_token']?.toString();
+        const user_id = req.headers['user_id']?.toString();
+        if (!user_id || !access_token) {
+            throw new common_1.UnauthorizedException('user_id atau access_token tidak ditemukan');
         }
-        return this.adminService.getStatistikKunjungan(token);
+        return this.adminService.getStatistikKunjungan(user_id, access_token);
     }
     extractToken(authHeader) {
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -114,6 +153,7 @@ let AdminController = class AdminController {
 };
 exports.AdminController = AdminController;
 __decorate([
+    (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -154,63 +194,115 @@ __decorate([
 ], AdminController.prototype, "login", null);
 __decorate([
     (0, common_1.Post)('logout'),
-    __param(0, (0, common_1.Req)()),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Ip)()),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [logout_admin_dto_1.LogoutAdminDto, String, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "logout", null);
 __decorate([
     (0, common_1.Get)('profile'),
-    __param(0, (0, common_1.Headers)('authorization')),
+    __param(0, (0, common_1.Headers)('access_token')),
+    __param(1, (0, common_1.Headers)('user_id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getProfile", null);
 __decorate([
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiBody)({ type: update_admin_dto_1.UpdateAdminProfileDto }),
     (0, swagger_1.ApiBody)({
         schema: {
             type: 'object',
             properties: {
-                nama_depan_admin: { type: 'string', example: 'John' },
-                nama_belakang_admin: { type: 'string', example: 'Doe' },
-                password: { type: 'string', example: 'newpassword123' },
-                foto_admin: {
+                nama_depan: { type: 'string' },
+                nama_belakang: { type: 'string' },
+                password: { type: 'string' },
+                foto: {
                     type: 'string',
                     format: 'binary',
                 },
             },
         },
     }),
-    (0, common_1.Patch)('profile'),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('foto_admin')),
-    __param(0, (0, common_1.Headers)('authorization')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Put)('update-profile'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('foto')),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
     __param(2, (0, common_1.UploadedFile)()),
-    __param(3, (0, common_1.Req)()),
+    __param(3, (0, common_1.Headers)('access_token')),
+    __param(4, (0, common_1.Headers)('user_id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_admin_dto_1.UpdateAdminProfileDto, Object, Object]),
+    __metadata("design:paramtypes", [update_admin_dto_1.UpdateAdminProfileDto, Object, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "updateProfile", null);
 __decorate([
     (0, common_1.Post)('reset-password'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
-    __param(2, (0, common_1.Headers)('user-agent')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [reset_password_admin_dto_1.ResetPasswordDto, Object, String]),
+    __metadata("design:paramtypes", [reset_password_admin_dto_1.ResetPasswordDto, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "resetPassword", null);
 __decorate([
     (0, common_1.Get)('buku-tamu'),
-    __param(0, (0, common_1.Headers)('authorization')),
-    __param(1, (0, common_1.Req)()),
+    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
+    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
+    __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getBukuTamu", null);
 __decorate([
+    (0, common_1.Get)('hari-ini'),
+    __param(0, (0, common_1.Headers)('access_token')),
+    __param(1, (0, common_1.Headers)('user_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getHariIni", null);
+__decorate([
+    (0, common_1.Get)('minggu-ini'),
+    __param(0, (0, common_1.Headers)('access_token')),
+    __param(1, (0, common_1.Headers)('user_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getMingguIni", null);
+__decorate([
+    (0, common_1.Get)('bulan-ini'),
+    __param(0, (0, common_1.Headers)('access_token')),
+    __param(1, (0, common_1.Headers)('user_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getBulanIni", null);
+__decorate([
+    (0, common_1.Get)(':period'),
+    __param(0, (0, common_1.Param)('period')),
+    __param(1, (0, common_1.Headers)('access_token')),
+    __param(2, (0, common_1.Headers)('user_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getByPeriod", null);
+__decorate([
+    (0, common_1.Patch)('buku-tamu/:id/status'),
+    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
+    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, ubah_status_buku_tamu_dto_1.UbahStatusBukuTamuDto, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "ubahStatusBukuTamu", null);
+__decorate([
     (0, common_1.Delete)('buku-tamu/:id'),
+    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
+    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
+    (0, swagger_1.ApiParam)({ name: 'id' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
@@ -219,13 +311,17 @@ __decorate([
 ], AdminController.prototype, "deleteBukuTamu", null);
 __decorate([
     (0, common_1.Get)('dashboard'),
+    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
+    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getDashboard", null);
 __decorate([
-    (0, common_1.Get)('kunjungan'),
+    (0, common_1.Get)('daftar-kunjungan'),
+    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
+    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Query)('search')),
     __param(2, (0, common_1.Query)('startDate')),
@@ -233,14 +329,16 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String, String, String]),
     __metadata("design:returntype", Promise)
-], AdminController.prototype, "getKunjungan", null);
+], AdminController.prototype, "getDaftarKunjungan", null);
 __decorate([
     (0, common_1.Get)('statistik'),
+    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
+    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], AdminController.prototype, "getStatistikKunjungan", null);
+], AdminController.prototype, "getStatistik", null);
 exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     __metadata("design:paramtypes", [admin_service_1.AdminService])
