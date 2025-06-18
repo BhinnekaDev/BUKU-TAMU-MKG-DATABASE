@@ -1,5 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export class AlamatDto {
+  @ApiProperty()
+  @IsString()
+  province_id: string;
+
+  @ApiProperty()
+  @IsString()
+  regency_id: string;
+
+  @ApiProperty()
+  @IsString()
+  district_id: string;
+
+  @ApiProperty()
+  @IsString()
+  village_id: string;
+}
+
+export enum AsalPengunjung {
+  BMKG = 'BMKG',
+  Dinas = 'Dinas',
+  Universitas = 'Universitas',
+  Media = 'Media',
+  Lembaga_Non_Pemerintahan = 'Lembaga Non Pemerintahan',
+  Umum = 'Umum',
+}
 
 export class IsiBukuTamuDto {
   @ApiProperty({
@@ -23,6 +50,64 @@ export class IsiBukuTamuDto {
     example: 'Senin, 10 Juni 2024, 14.30',
     required: false,
   })
+  @IsOptional()
   @IsString()
   waktu_kunjungan?: string;
+
+  @ApiProperty({
+    description: 'Nama depan pengunjung',
+    example: 'Ahmad',
+  })
+  @IsNotEmpty()
+  @IsString()
+  Nama_Depan_Pengunjung: string;
+
+  @ApiProperty({
+    description: 'Nama belakang pengunjung',
+    example: 'Hidayat',
+  })
+  @IsNotEmpty()
+  @IsString()
+  Nama_Belakang_Pengunjung: string;
+
+  @ApiProperty({
+    description: 'Email pengunjung',
+    example: 'ahmad.hidayat@example.com',
+  })
+  @IsNotEmpty()
+  @IsEmail()
+  Email_Pengunjung: string;
+
+  @ApiProperty({
+    description: 'Nomor telepon pengunjung',
+    example: '081234567890',
+  })
+  @IsNotEmpty()
+  @IsString()
+  No_Telepon_Pengunjung: string;
+
+  @ApiProperty({
+    type: () => AsalPengunjung,
+  })
+  @IsNotEmpty()
+  @IsString()
+  Asal_Pengunjung: string;
+
+  @ApiProperty({
+    description: 'Keterangan tambahan tentang asal pengunjung',
+    example: 'Perwakilan dari Dishub Jawa Barat',
+  })
+  @IsOptional()
+  @IsString()
+  Keterangan_Asal_Pengunjung?: string;
+
+  @ApiProperty({
+    description: 'Alamat dalam bentuk JSON string',
+    example:
+      '{"province_id":"32","regency_id":"3204","district_id":"3204190","village_id":"3204190005"}',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  alamat?: string;
 }

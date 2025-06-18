@@ -9,13 +9,56 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IsiBukuTamuDto = void 0;
+exports.IsiBukuTamuDto = exports.AsalPengunjung = exports.AlamatDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
+class AlamatDto {
+    province_id;
+    regency_id;
+    district_id;
+    village_id;
+}
+exports.AlamatDto = AlamatDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDto.prototype, "province_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDto.prototype, "regency_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDto.prototype, "district_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDto.prototype, "village_id", void 0);
+var AsalPengunjung;
+(function (AsalPengunjung) {
+    AsalPengunjung["BMKG"] = "BMKG";
+    AsalPengunjung["Dinas"] = "Dinas";
+    AsalPengunjung["Universitas"] = "Universitas";
+    AsalPengunjung["Media"] = "Media";
+    AsalPengunjung["Lembaga_Non_Pemerintahan"] = "Lembaga Non Pemerintahan";
+    AsalPengunjung["Umum"] = "Umum";
+})(AsalPengunjung || (exports.AsalPengunjung = AsalPengunjung = {}));
 class IsiBukuTamuDto {
     tujuan;
     id_stasiun;
     waktu_kunjungan;
+    Nama_Depan_Pengunjung;
+    Nama_Belakang_Pengunjung;
+    Email_Pengunjung;
+    No_Telepon_Pengunjung;
+    Asal_Pengunjung;
+    Keterangan_Asal_Pengunjung;
+    alamat;
 }
 exports.IsiBukuTamuDto = IsiBukuTamuDto;
 __decorate([
@@ -42,7 +85,71 @@ __decorate([
         example: 'Senin, 10 Juni 2024, 14.30',
         required: false,
     }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], IsiBukuTamuDto.prototype, "waktu_kunjungan", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Nama depan pengunjung',
+        example: 'Ahmad',
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "Nama_Depan_Pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Nama belakang pengunjung',
+        example: 'Hidayat',
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "Nama_Belakang_Pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Email pengunjung',
+        example: 'ahmad.hidayat@example.com',
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "Email_Pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Nomor telepon pengunjung',
+        example: '081234567890',
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "No_Telepon_Pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: () => AsalPengunjung,
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "Asal_Pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Keterangan tambahan tentang asal pengunjung',
+        example: 'Perwakilan dari Dishub Jawa Barat',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "Keterangan_Asal_Pengunjung", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Alamat dalam bentuk JSON string',
+        example: '{"province_id":"32","regency_id":"3204","district_id":"3204190","village_id":"3204190005"}',
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "alamat", void 0);
 //# sourceMappingURL=isi-buku-tamu.dto.js.map

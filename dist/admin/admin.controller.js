@@ -18,7 +18,6 @@ const login_admin_dto_1 = require("./dto/login-admin.dto");
 const logout_admin_dto_1 = require("./dto/logout-admin.dto");
 const register_admin_dto_1 = require("./dto/register-admin.dto");
 const reset_password_admin_dto_1 = require("./dto/reset-password-admin.dto");
-const ubah_status_buku_tamu_dto_1 = require("./dto/ubah-status-buku-tamu.dto");
 const update_admin_dto_1 = require("./dto/update-admin.dto");
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
@@ -95,30 +94,6 @@ let AdminController = class AdminController {
     async getByPeriod(period, authorization, user_id) {
         const access_token = authorization?.replace('Bearer ', '');
         return this.adminService.getBukuTamuByPeriod(access_token, user_id, period);
-    }
-    async ubahStatusBukuTamu(idBukuTamu, dto, req) {
-        const access_token = req.headers['access_token']?.toString();
-        const user_id = req.headers['user_id']?.toString();
-        if (!access_token || !user_id) {
-            throw new common_1.BadRequestException('Header access_token dan user_id wajib diisi');
-        }
-        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-            req.socket.remoteAddress ||
-            null;
-        const userAgent = req.headers['user-agent'] ?? null;
-        return this.adminService.ubahStatusBukuTamu(idBukuTamu, dto, access_token, user_id, ip, userAgent);
-    }
-    async deleteBukuTamu(id, req) {
-        const access_token = req.headers['access_token']?.toString();
-        const user_id = req.headers['user_id']?.toString();
-        if (!user_id || !access_token) {
-            throw new common_1.UnauthorizedException('user_id atau access_token tidak ditemukan');
-        }
-        const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-            req.socket.remoteAddress ||
-            null;
-        const userAgent = req.headers['user-agent'] || null;
-        return this.adminService.deleteBukuTamu(id, user_id, access_token, ip, userAgent);
     }
     async getDashboard(req) {
         const access_token = req.headers['access_token']?.toString();
@@ -287,28 +262,6 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getByPeriod", null);
-__decorate([
-    (0, common_1.Patch)('buku-tamu/:id/status'),
-    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
-    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, ubah_status_buku_tamu_dto_1.UbahStatusBukuTamuDto, Object]),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "ubahStatusBukuTamu", null);
-__decorate([
-    (0, common_1.Delete)('buku-tamu/:id'),
-    (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),
-    (0, swagger_1.ApiHeader)({ name: 'access_token', required: true }),
-    (0, swagger_1.ApiParam)({ name: 'id' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", Promise)
-], AdminController.prototype, "deleteBukuTamu", null);
 __decorate([
     (0, common_1.Get)('dashboard'),
     (0, swagger_1.ApiHeader)({ name: 'user_id', required: true }),

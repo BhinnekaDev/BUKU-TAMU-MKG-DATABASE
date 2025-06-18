@@ -17,7 +17,6 @@ class AlamatDto {
     regency_id;
     district_id;
     village_id;
-    Kode_Pos;
 }
 exports.AlamatDto = AlamatDto;
 __decorate([
@@ -40,11 +39,6 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], AlamatDto.prototype, "village_id", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], AlamatDto.prototype, "Kode_Pos", void 0);
 var AsalPengunjung;
 (function (AsalPengunjung) {
     AsalPengunjung["BMKG"] = "BMKG";

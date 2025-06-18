@@ -2,7 +2,6 @@ import { LoginAdminDto } from '@/admin/dto/login-admin.dto';
 import { LogoutAdminDto } from '@/admin/dto/logout-admin.dto';
 import { RegisterAdminDto } from '@/admin/dto/register-admin.dto';
 import { ResetPasswordDto } from '@/admin/dto/reset-password-admin.dto';
-import { UbahStatusBukuTamuDto } from '@/admin/dto/ubah-status-buku-tamu.dto';
 import { UpdateAdminProfileDto } from '@/admin/dto/update-admin.dto';
 export declare class AdminService {
     register(dto: RegisterAdminDto, ip: string | null, userAgent: string | null, foto_admin?: Express.Multer.File): Promise<{
@@ -16,6 +15,7 @@ export declare class AdminService {
         refresh_token: string;
         user_id: string;
         role: any;
+        expires_at: number | undefined;
     }>;
     logout(dto: LogoutAdminDto, ip: string | null, userAgent: string | null): Promise<{
         message: string;
@@ -46,12 +46,6 @@ export declare class AdminService {
     getBukuTamuHariIni(access_token: string, user_id: string): Promise<any>;
     getBukuTamuMingguIni(access_token: string, user_id: string): Promise<any>;
     getBukuTamuBulanIni(access_token: string, user_id: string): Promise<any>;
-    ubahStatusBukuTamu(idBukuTamu: string, dto: UbahStatusBukuTamuDto, access_token: string, user_id: string, ip: string | null, userAgent: string | null): Promise<{
-        message: string;
-    }>;
-    deleteBukuTamu(id: string, user_id: string, access_token: string, ip: string | null, userAgent: string | null): Promise<{
-        message: string;
-    }>;
     getDashboard(user_id: string, access_token: string): Promise<{
         peran: any;
         id_stasiun: any;

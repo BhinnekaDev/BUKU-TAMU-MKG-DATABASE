@@ -3,18 +3,15 @@ import { LoginAdminDto } from '@/admin/dto/login-admin.dto';
 import { LogoutAdminDto } from '@/admin/dto/logout-admin.dto';
 import { RegisterAdminDto } from '@/admin/dto/register-admin.dto';
 import { ResetPasswordDto } from '@/admin/dto/reset-password-admin.dto';
-import { UbahStatusBukuTamuDto } from '@/admin/dto/ubah-status-buku-tamu.dto';
 import { UpdateAdminProfileDto } from '@/admin/dto/update-admin.dto';
 import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   Headers,
   Ip,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -29,7 +26,6 @@ import {
   ApiBody,
   ApiConsumes,
   ApiHeader,
-  ApiParam,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 
@@ -215,69 +211,6 @@ export class AdminController {
       access_token,
       user_id,
       period as 'today' | 'week' | 'month',
-    );
-  }
-
-
-  @Patch('buku-tamu/:id/status')
-  @ApiHeader({ name: 'user_id', required: true })
-  @ApiHeader({ name: 'access_token', required: true })
-  async ubahStatusBukuTamu(
-    @Param('id') idBukuTamu: string,
-    @Body() dto: UbahStatusBukuTamuDto,
-    @Req() req: Request,
-  ) {
-    const access_token = req.headers['access_token']?.toString();
-    const user_id = req.headers['user_id']?.toString();
-
-    if (!access_token || !user_id) {
-      throw new BadRequestException(
-        'Header access_token dan user_id wajib diisi',
-      );
-    }
-
-    const ip =
-      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-      req.socket.remoteAddress ||
-      null;
-    const userAgent = req.headers['user-agent'] ?? null;
-
-    return this.adminService.ubahStatusBukuTamu(
-      idBukuTamu,
-      dto,
-      access_token,
-      user_id,
-      ip,
-      userAgent,
-    );
-  }
-
-  @Delete('buku-tamu/:id')
-  @ApiHeader({ name: 'user_id', required: true })
-  @ApiHeader({ name: 'access_token', required: true })
-  @ApiParam({ name: 'id' })
-  async deleteBukuTamu(@Param('id') id: string, @Req() req: Request) {
-    const access_token = req.headers['access_token']?.toString();
-    const user_id = req.headers['user_id']?.toString();
-    if (!user_id || !access_token) {
-      throw new UnauthorizedException(
-        'user_id atau access_token tidak ditemukan',
-      );
-    }
-
-    const ip =
-      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-      req.socket.remoteAddress ||
-      null;
-
-    const userAgent = req.headers['user-agent'] || null;
-
-    return this.adminService.deleteBukuTamu(
-      id,
-      user_id,
-      access_token,
-      ip,
-      userAgent,
     );
   }
 

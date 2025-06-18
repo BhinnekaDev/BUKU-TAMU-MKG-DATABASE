@@ -3,7 +3,6 @@ import { LoginAdminDto } from '@/admin/dto/login-admin.dto';
 import { LogoutAdminDto } from '@/admin/dto/logout-admin.dto';
 import { RegisterAdminDto } from '@/admin/dto/register-admin.dto';
 import { ResetPasswordDto } from '@/admin/dto/reset-password-admin.dto';
-import { UbahStatusBukuTamuDto } from '@/admin/dto/ubah-status-buku-tamu.dto';
 import { UpdateAdminProfileDto } from '@/admin/dto/update-admin.dto';
 import { Request } from 'express';
 export declare class AdminController {
@@ -20,6 +19,7 @@ export declare class AdminController {
         refresh_token: string;
         user_id: string;
         role: any;
+        expires_at: number | undefined;
     }>;
     logout(dto: LogoutAdminDto, ip: string, req: Request): Promise<{
         message: string;
@@ -45,12 +45,6 @@ export declare class AdminController {
     getMingguIni(authorization: string, user_id: string): Promise<any>;
     getBulanIni(authorization: string, user_id: string): Promise<any>;
     getByPeriod(period: string, authorization: string, user_id: string): Promise<any>;
-    ubahStatusBukuTamu(idBukuTamu: string, dto: UbahStatusBukuTamuDto, req: Request): Promise<{
-        message: string;
-    }>;
-    deleteBukuTamu(id: string, req: Request): Promise<{
-        message: string;
-    }>;
     getDashboard(req: Request): Promise<{
         peran: any;
         id_stasiun: any;

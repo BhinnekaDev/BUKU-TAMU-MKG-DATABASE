@@ -3,7 +3,6 @@ export declare class AlamatDto {
     regency_id: string;
     district_id: string;
     village_id: string;
-    Kode_Pos?: string;
 }
 export declare enum AsalPengunjung {
     BMKG = "BMKG",

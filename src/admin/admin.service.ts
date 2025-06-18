@@ -2,12 +2,10 @@ import { LoginAdminDto } from '@/admin/dto/login-admin.dto';
 import { LogoutAdminDto } from '@/admin/dto/logout-admin.dto';
 import { PeranAdmin, RegisterAdminDto } from '@/admin/dto/register-admin.dto';
 import { ResetPasswordDto } from '@/admin/dto/reset-password-admin.dto';
-import { UbahStatusBukuTamuDto } from '@/admin/dto/ubah-status-buku-tamu.dto';
 import { UpdateAdminProfileDto } from '@/admin/dto/update-admin.dto';
 import { supabase } from '@/supabase/supabase.client';
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -157,7 +155,25 @@ export class AdminService {
     }
 
     const user = data.user;
-    const session = data.session;
+    let session = data.session;
+
+    // Perpanjang masa berlaku token
+    try {
+      // Alternatif 1: Gunakan refreshSession()
+      const { data: refreshedData, error: refreshError } =
+        await supabase.auth.refreshSession();
+      if (!refreshError && refreshedData?.session) {
+        session = refreshedData.session;
+      }
+
+      // Alternatif 2: Update session (tanpa expires_in)
+      await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+    } catch (refreshErr) {
+      console.error('Gagal memperpanjang session:', refreshErr);
+    }
 
     // 2. Ambil data admin
     const { data: adminData, error: adminError } = await supabase
@@ -204,6 +220,7 @@ export class AdminService {
       refresh_token: session.refresh_token,
       user_id: user.id,
       role: adminData.Peran,
+      expires_at: session.expires_at,
     };
   }
 
@@ -597,7 +614,6 @@ export class AdminService {
       Tanggal_Pengisian,
       Waktu_Kunjungan,
       Tanda_Tangan,
-      Status,
       Pengunjung:ID_Pengunjung(ID_Pengunjung, Nama_Depan_Pengunjung, Nama_Belakang_Pengunjung, Asal_Pengunjung),
       Stasiun:ID_Stasiun(Nama_Stasiun)
     `,
@@ -656,7 +672,8 @@ export class AdminService {
     // 3. Prepare base query
     let bukuTamuQuery = supabase
       .from('Buku_Tamu')
-      .select(`
+      .select(
+        `
         ID_Buku_Tamu,
         ID_Pengunjung,
         ID_Stasiun,
@@ -664,7 +681,7 @@ export class AdminService {
         Tanggal_Pengisian,
         Waktu_Kunjungan,
         Tanda_Tangan,
-        Status,
+
         Pengunjung:ID_Pengunjung(
           ID_Pengunjung, 
           Nama_Depan_Pengunjung, 
@@ -672,7 +689,8 @@ export class AdminService {
           Asal_Pengunjung
         ),
         Stasiun:ID_Stasiun(Nama_Stasiun)
-      `)
+      `,
+      )
       .order('Tanggal_Pengisian', { ascending: false });
 
     // 4. Apply station filter for non-superadmins
@@ -691,13 +709,22 @@ export class AdminService {
 
     switch (period) {
       case 'today':
-        bukuTamuQuery = bukuTamuQuery.gte('Tanggal_Pengisian', startOfDay.toISOString());
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          startOfDay.toISOString(),
+        );
         break;
       case 'week':
-        bukuTamuQuery = bukuTamuQuery.gte('Tanggal_Pengisian', startOfWeek.toISOString());
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          startOfWeek.toISOString(),
+        );
         break;
       case 'month':
-        bukuTamuQuery = bukuTamuQuery.gte('Tanggal_Pengisian', startOfMonth.toISOString());
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          startOfMonth.toISOString(),
+        );
         break;
       default:
         throw new BadRequestException('Periode filter tidak valid');
@@ -715,7 +742,7 @@ export class AdminService {
       isSuperadmin,
       stationFilter: !isSuperadmin ? adminData.ID_Stasiun : 'all',
       count: data.length,
-      data
+      data,
     };
   }
 
@@ -730,185 +757,6 @@ export class AdminService {
 
   async getBukuTamuBulanIni(access_token: string, user_id: string) {
     return this.getBukuTamuByPeriod(access_token, user_id, 'month');
-  }
-
-  async ubahStatusBukuTamu(
-    idBukuTamu: string,
-    dto: UbahStatusBukuTamuDto,
-    access_token: string,
-    user_id: string,
-    ip: string | null,
-    userAgent: string | null,
-  ) {
-    // 1. Verifikasi token Supabase dan cocokkan user_id
-    const { data: authData, error: authError } =
-      await supabase.auth.getUser(access_token);
-
-    if (authError || !authData?.user || authData.user.id !== user_id) {
-      throw new UnauthorizedException(
-        'Token tidak valid atau tidak cocok dengan user_id',
-      );
-    }
-
-    const adminId = user_id;
-
-    // 2. Ambil data admin
-    const { data: adminData, error: adminError } = await supabase
-      .from('Admin')
-      .select('Peran, Nama_Depan_Admin, Nama_Belakang_Admin, ID_Stasiun')
-      .eq('ID_Admin', adminId)
-      .single();
-
-    if (adminError || !adminData) {
-      throw new BadRequestException('Data admin tidak ditemukan');
-    }
-
-    const isSuperadmin = adminData.Peran === 'Superadmin';
-
-    // 3. Ambil data buku tamu
-    const { data: bukuTamuData, error: bukuTamuError } = await supabase
-      .from('Buku_Tamu')
-      .select('ID_Stasiun, ID_Pengunjung')
-      .eq('ID_Buku_Tamu', idBukuTamu)
-      .single();
-
-    if (bukuTamuError || !bukuTamuData) {
-      throw new NotFoundException('Data buku tamu tidak ditemukan');
-    }
-
-    // 4. Validasi hak akses admin
-    if (!isSuperadmin && bukuTamuData.ID_Stasiun !== adminData.ID_Stasiun) {
-      throw new ForbiddenException('Anda tidak diizinkan mengubah data ini');
-    }
-
-    // 5. Validasi status baru
-    const statusEnum = ['menunggu persetujuan', 'disetujui', 'dibatalkan'];
-    if (!statusEnum.includes(dto.statusBaru)) {
-      throw new BadRequestException('Status tidak valid');
-    }
-
-    // 6. Update status buku tamu
-    const { error: updateError } = await supabase
-      .from('Buku_Tamu')
-      .update({ Status: dto.statusBaru })
-      .eq('ID_Buku_Tamu', idBukuTamu);
-
-    if (updateError) {
-      throw new BadRequestException('Gagal mengubah status buku tamu');
-    }
-
-    // 7. Ambil nama stasiun (jika ada)
-    let namaStasiun = '';
-    if (adminData.ID_Stasiun) {
-      const { data: stasiunData } = await supabase
-        .from('Stasiun')
-        .select('Nama_Stasiun')
-        .eq('ID_Stasiun', adminData.ID_Stasiun)
-        .single();
-
-      namaStasiun = stasiunData?.Nama_Stasiun || '';
-    }
-
-    // 8. Catat log aktivitas
-    await supabase.from('Activity_Log').insert({
-      ID_User: adminId,
-      Role: 'Admin',
-      Action: 'Ubah Status Buku Tamu',
-      Description:
-        `${adminData.Peran} ${adminData.Nama_Depan_Admin} ${adminData.Nama_Belakang_Admin}` +
-        (namaStasiun ? ` dari stasiun ${namaStasiun}` : '') +
-        ` mengubah status buku tamu ${idBukuTamu} menjadi ${dto.statusBaru}`,
-      IP_Address: ip,
-      User_Agent: userAgent,
-    });
-
-    return {
-      message: 'Status buku tamu berhasil diubah',
-    };
-  }
-
-  async deleteBukuTamu(
-    id: string,
-    user_id: string,
-    access_token: string,
-    ip: string | null,
-    userAgent: string | null,
-  ) {
-    // 1. Verifikasi token dan kecocokan user_id
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.getUser(access_token);
-
-    if (sessionError || !sessionData?.user || sessionData.user.id !== user_id) {
-      throw new UnauthorizedException(
-        'Token tidak valid atau tidak sesuai user',
-      );
-    }
-
-    // 2. Ambil data admin
-    const { data: adminData, error: adminError } = await supabase
-      .from('Admin')
-      .select('Peran, Nama_Depan_Admin, Nama_Belakang_Admin')
-      .eq('ID_Admin', user_id)
-      .single();
-
-    if (adminError || !adminData) {
-      throw new BadRequestException('Data admin tidak ditemukan');
-    }
-
-    if (adminData.Peran !== 'Superadmin') {
-      throw new ForbiddenException(
-        'Hanya superadmin yang dapat menghapus buku tamu',
-      );
-    }
-
-    // 3. Ambil data buku tamu untuk mengetahui tanda tangan
-    const { data: bukuTamu, error: fetchError } = await supabase
-      .from('Buku_Tamu')
-      .select('Tanda_Tangan')
-      .eq('ID_Buku_Tamu', id)
-      .single();
-
-    if (fetchError || !bukuTamu) {
-      throw new NotFoundException('Data buku tamu tidak ditemukan');
-    }
-
-    // 4. Hapus tanda tangan dari storage
-    if (bukuTamu.Tanda_Tangan) {
-      const storageBaseUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/tanda-tangan/`;
-      const filePath = bukuTamu.Tanda_Tangan.replace(storageBaseUrl, '');
-
-      const { error: storageError } = await supabase.storage
-        .from('tanda-tangan')
-        .remove([filePath]);
-
-      if (storageError) {
-        throw new InternalServerErrorException(
-          'Gagal menghapus tanda tangan dari storage',
-        );
-      }
-    }
-
-    // 5. Hapus data buku tamu
-    const { error: deleteError } = await supabase
-      .from('Buku_Tamu')
-      .delete()
-      .eq('ID_Buku_Tamu', id);
-
-    if (deleteError) {
-      throw new InternalServerErrorException('Gagal menghapus data buku tamu');
-    }
-
-    // 6. Log aktivitas
-    await supabase.from('Activity_Log').insert({
-      ID_User: user_id,
-      Role: 'Admin',
-      Action: 'Hapus Buku Tamu',
-      Description: `Superadmin ${adminData.Nama_Depan_Admin} ${adminData.Nama_Belakang_Admin} menghapus buku tamu ${id}`,
-      IP_Address: ip,
-      User_Agent: userAgent,
-    });
-
-    return { message: 'Buku tamu berhasil dihapus' };
   }
 
   async getDashboard(user_id: string, access_token: string) {

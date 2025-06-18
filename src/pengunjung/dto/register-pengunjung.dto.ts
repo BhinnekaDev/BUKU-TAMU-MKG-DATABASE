@@ -17,10 +17,6 @@ export class AlamatDto {
   @ApiProperty()
   @IsString()
   village_id: string;
-
-  @ApiProperty()
-  @IsString()
-  Kode_Pos?: string;
 }
 
 export enum AsalPengunjung {
