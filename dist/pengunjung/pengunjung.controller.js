@@ -69,7 +69,7 @@ let PengunjungController = class PengunjungController {
 };
 exports.PengunjungController = PengunjungController;
 __decorate([
-    (0, common_1.Get)(),
+    (0, common_1.Get)('asalpengunjung'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -167,6 +167,15 @@ __decorate([
                         regency_id: '3204',
                         district_id: '3204190',
                         village_id: '3204190005',
+                    }),
+                },
+                alamat_detail: {
+                    type: 'string',
+                    example: JSON.stringify({
+                        rt: '01',
+                        rw: '05',
+                        kode_pos: '40285',
+                        nama_jalan: 'Jl. Sukajadi No. 123',
                     }),
                 },
                 tanda_tangan: {

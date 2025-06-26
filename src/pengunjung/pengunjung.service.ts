@@ -152,6 +152,7 @@ export class PengunjungService {
       Asal_Pengunjung,
       Keterangan_Asal_Pengunjung,
       alamat,
+      alamat_detail,
       waktu_kunjungan,
     } = dto;
 
@@ -168,7 +169,7 @@ export class PengunjungService {
       throw new BadRequestException('Semua data wajib diisi');
     }
 
-    // Upload tanda tangan
+    // Upload tanda-tangan
     let fileUrl: string | null = null;
     if (file) {
       const path = `tanda-tangan/${uuidv4()}${extname(file.originalname)}`;
@@ -189,7 +190,7 @@ export class PengunjungService {
         throw new BadRequestException('Gagal mendapatkan URL tanda tangan');
     }
 
-    // 2. Cek apakah ID Stasiun valid
+    // 2. Validasi ID Stasiun
     const { data: stasiunData, error: stasiunError } = await supabase
       .from('Stasiun')
       .select('ID_Stasiun, Nama_Stasiun')
@@ -202,15 +203,14 @@ export class PengunjungService {
     // Format waktu kunjungan
     const waktuKunjungan = waktu_kunjungan || this.formatWaktuKunjungan();
 
-    // 3. Simpan alamat jika ada
+    // 3. Validasi dan simpan alamat
     let alamatId: string | null = null;
-
     if (alamat) {
       let parsedAlamat: any;
       try {
         parsedAlamat = typeof alamat === 'string' ? JSON.parse(alamat) : alamat;
 
-        // Validasi manual field wajib
+        // Validasi format alamat
         const requiredFields = [
           'province_id',
           'regency_id',
@@ -230,7 +230,7 @@ export class PengunjungService {
         );
       }
 
-      // Ambil nama-nama wilayah berdasarkan ID (dengan fallback)
+      // Ambil data wilayah berdasarkan ID
       const [prov, kab, kec, kel] = await Promise.all([
         this.getProvinceById(parsedAlamat.province_id).catch(() => ({
           id: parsedAlamat.province_id,
@@ -261,7 +261,7 @@ export class PengunjungService {
         Kelurahan: kel.name,
       };
 
-      // Cek apakah sudah ada alamat tersebut di DB
+      // Cek apakah alamat sudah ada
       const { data: existingAlamat, error: findError } = await supabase
         .from('Alamat')
         .select('ID_Alamat')
@@ -274,7 +274,7 @@ export class PengunjungService {
         .single();
 
       if (findError && findError.code !== 'PGRST116') {
-        // selain error data not found
+        // PGRST116 adalah error untuk "not found"
         throw new BadRequestException('Gagal mencari data alamat');
       }
 
@@ -289,15 +289,56 @@ export class PengunjungService {
           .single();
 
         if (insertError) {
-          console.error('Insert alamat error:', insertError);
           throw new BadRequestException('Gagal menyimpan data alamat');
         }
 
         alamatId = insertedAlamat.ID_Alamat;
       }
+
+      // Simpan Alamat Detail
+      if (alamat_detail && alamatId) {
+        const parsedAlamatDetail =
+          typeof alamat_detail === 'string'
+            ? JSON.parse(alamat_detail)
+            : alamat_detail;
+        const { rt, rw, kode_pos, nama_jalan } = parsedAlamatDetail;
+        if (!rt || !rw || !kode_pos || !nama_jalan) {
+          throw new BadRequestException(
+            'Field alamat_detail wajib lengkap (rt, rw, kode_pos, nama_jalan)',
+          );
+        }
+
+        // Cek apakah alamat detail sudah ada
+        const { data: existingDetail, error: detailError } = await supabase
+          .from('Alamat_Detail')
+          .select('ID_Alamat_Detail')
+          .match({ RT: rt, RW: rw, Kode_Pos: kode_pos, Nama_Jalan: nama_jalan })
+          .single();
+
+        if (detailError && detailError.code !== 'PGRST116') {
+          throw new BadRequestException('Gagal memeriksa alamat detail');
+        }
+
+        // Jika alamat detail belum ada, insert baru
+        if (!existingDetail) {
+          const { error: insertDetailError } = await supabase
+            .from('Alamat_Detail')
+            .insert({
+              ID_Alamat: alamatId,
+              RT: rt,
+              RW: rw,
+              Kode_Pos: kode_pos,
+              Nama_Jalan: nama_jalan,
+            });
+
+          if (insertDetailError) {
+            throw new BadRequestException('Gagal menyimpan alamat detail');
+          }
+        }
+      }
     }
 
-    // 4. Simpan data pengunjung
+    // 4. Cek apakah pengunjung sudah ada
     const { data: existingPengunjung } = await supabase
       .from('Pengunjung')
       .select('ID_Pengunjung')
@@ -310,6 +351,7 @@ export class PengunjungService {
       })
       .single();
 
+    // 5. Simpan data pengunjung
     let pengunjungId: string;
 
     if (existingPengunjung?.ID_Pengunjung) {
@@ -317,6 +359,7 @@ export class PengunjungService {
     } else {
       pengunjungId = uuidv4();
 
+      // Insert pengunjung baru
       const { error: pengunjungError } = await supabase
         .from('Pengunjung')
         .insert({
@@ -331,12 +374,11 @@ export class PengunjungService {
         });
 
       if (pengunjungError) {
-        console.error('Insert Pengunjung error:', pengunjungError);
         throw new BadRequestException('Gagal menyimpan data pengunjung');
       }
     }
 
-    // 5. Simpan data buku tamu
+    // 6. Simpan data buku tamu
     const { error: insertBukuTamuError } = await supabase
       .from('Buku_Tamu')
       .insert({
@@ -348,11 +390,10 @@ export class PengunjungService {
       });
 
     if (insertBukuTamuError) {
-      console.error('Insert Buku_Tamu error:', insertBukuTamuError);
       throw new BadRequestException('Gagal menyimpan data buku tamu');
     }
 
-    // 6. Catat ke Activity_Log
+    // 7. Log aktivitas
     const stasiunNama = stasiunData?.Nama_Stasiun || 'Stasiun Tidak Diketahui';
     const namaLengkap = `${Nama_Depan_Pengunjung} ${Nama_Belakang_Pengunjung}`;
 
@@ -365,7 +406,6 @@ export class PengunjungService {
       User_Agent: userAgent,
     });
 
-    // 7. Return message
     return { message: 'Data buku tamu berhasil disimpan' };
   }
 

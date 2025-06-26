@@ -19,6 +19,28 @@ export class AlamatDto {
   village_id: string;
 }
 
+export class AlamatDetailDto {
+  @ApiProperty({ example: '01' })
+  @IsNotEmpty()
+  @IsString()
+  rt: string;
+
+  @ApiProperty({ example: '05' })
+  @IsNotEmpty()
+  @IsString()
+  rw: string;
+
+  @ApiProperty({ example: '40285' })
+  @IsNotEmpty()
+  @IsString()
+  kode_pos: string;
+
+  @ApiProperty({ example: 'Jl. Sukajadi No. 123' })
+  @IsNotEmpty()
+  @IsString()
+  nama_jalan: string;
+}
+
 export enum AsalPengunjung {
   BMKG = 'BMKG',
   Dinas = 'Dinas',
@@ -107,7 +129,14 @@ export class IsiBukuTamuDto {
       '{"province_id":"32","regency_id":"3204","district_id":"3204190","village_id":"3204190005"}',
     required: false,
   })
-  @IsOptional()
   @IsString()
   alamat?: string;
+  @ApiProperty({
+    description: 'Detail alamat dalam bentuk JSON string',
+    example:
+      '{"rt":"01","rw":"05","kode_pos":"40285","nama_jalan":"Jl. Sukajadi No. 123"}',
+    required: false,
+  })
+  @IsString()
+  alamat_detail?: string;
 }

@@ -106,7 +106,7 @@ let PengunjungService = class PengunjungService {
         }
     }
     async isiBukuTamu(dto, ip, userAgent, file) {
-        const { tujuan, id_stasiun, Nama_Depan_Pengunjung, Nama_Belakang_Pengunjung, Email_Pengunjung, No_Telepon_Pengunjung, Asal_Pengunjung, Keterangan_Asal_Pengunjung, alamat, waktu_kunjungan, } = dto;
+        const { tujuan, id_stasiun, Nama_Depan_Pengunjung, Nama_Belakang_Pengunjung, Email_Pengunjung, No_Telepon_Pengunjung, Asal_Pengunjung, Keterangan_Asal_Pengunjung, alamat, alamat_detail, waktu_kunjungan, } = dto;
         if (!tujuan ||
             !id_stasiun ||
             !Nama_Depan_Pengunjung ||
@@ -213,10 +213,40 @@ let PengunjungService = class PengunjungService {
                     .select('ID_Alamat')
                     .single();
                 if (insertError) {
-                    console.error('Insert alamat error:', insertError);
                     throw new common_1.BadRequestException('Gagal menyimpan data alamat');
                 }
                 alamatId = insertedAlamat.ID_Alamat;
+            }
+            if (alamat_detail && alamatId) {
+                const parsedAlamatDetail = typeof alamat_detail === 'string'
+                    ? JSON.parse(alamat_detail)
+                    : alamat_detail;
+                const { rt, rw, kode_pos, nama_jalan } = parsedAlamatDetail;
+                if (!rt || !rw || !kode_pos || !nama_jalan) {
+                    throw new common_1.BadRequestException('Field alamat_detail wajib lengkap (rt, rw, kode_pos, nama_jalan)');
+                }
+                const { data: existingDetail, error: detailError } = await supabase_client_1.supabase
+                    .from('Alamat_Detail')
+                    .select('ID_Alamat_Detail')
+                    .match({ RT: rt, RW: rw, Kode_Pos: kode_pos, Nama_Jalan: nama_jalan })
+                    .single();
+                if (detailError && detailError.code !== 'PGRST116') {
+                    throw new common_1.BadRequestException('Gagal memeriksa alamat detail');
+                }
+                if (!existingDetail) {
+                    const { error: insertDetailError } = await supabase_client_1.supabase
+                        .from('Alamat_Detail')
+                        .insert({
+                        ID_Alamat: alamatId,
+                        RT: rt,
+                        RW: rw,
+                        Kode_Pos: kode_pos,
+                        Nama_Jalan: nama_jalan,
+                    });
+                    if (insertDetailError) {
+                        throw new common_1.BadRequestException('Gagal menyimpan alamat detail');
+                    }
+                }
             }
         }
         const { data: existingPengunjung } = await supabase_client_1.supabase
@@ -249,7 +279,6 @@ let PengunjungService = class PengunjungService {
                 Keterangan_Asal_Pengunjung,
             });
             if (pengunjungError) {
-                console.error('Insert Pengunjung error:', pengunjungError);
                 throw new common_1.BadRequestException('Gagal menyimpan data pengunjung');
             }
         }
@@ -263,7 +292,6 @@ let PengunjungService = class PengunjungService {
             Waktu_Kunjungan: waktuKunjungan,
         });
         if (insertBukuTamuError) {
-            console.error('Insert Buku_Tamu error:', insertBukuTamuError);
             throw new common_1.BadRequestException('Gagal menyimpan data buku tamu');
         }
         const stasiunNama = stasiunData?.Nama_Stasiun || 'Stasiun Tidak Diketahui';

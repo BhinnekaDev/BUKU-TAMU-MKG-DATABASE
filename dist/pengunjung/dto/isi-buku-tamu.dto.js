@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IsiBukuTamuDto = exports.AsalPengunjung = exports.AlamatDto = void 0;
+exports.IsiBukuTamuDto = exports.AsalPengunjung = exports.AlamatDetailDto = exports.AlamatDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class AlamatDto {
@@ -39,6 +39,37 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], AlamatDto.prototype, "village_id", void 0);
+class AlamatDetailDto {
+    rt;
+    rw;
+    kode_pos;
+    nama_jalan;
+}
+exports.AlamatDetailDto = AlamatDetailDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '01' }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDetailDto.prototype, "rt", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '05' }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDetailDto.prototype, "rw", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '40285' }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDetailDto.prototype, "kode_pos", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Jl. Sukajadi No. 123' }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AlamatDetailDto.prototype, "nama_jalan", void 0);
 var AsalPengunjung;
 (function (AsalPengunjung) {
     AsalPengunjung["BMKG"] = "BMKG";
@@ -59,6 +90,7 @@ class IsiBukuTamuDto {
     Asal_Pengunjung;
     Keterangan_Asal_Pengunjung;
     alamat;
+    alamat_detail;
 }
 exports.IsiBukuTamuDto = IsiBukuTamuDto;
 __decorate([
@@ -148,8 +180,16 @@ __decorate([
         example: '{"province_id":"32","regency_id":"3204","district_id":"3204190","village_id":"3204190005"}',
         required: false,
     }),
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], IsiBukuTamuDto.prototype, "alamat", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Detail alamat dalam bentuk JSON string',
+        example: '{"rt":"01","rw":"05","kode_pos":"40285","nama_jalan":"Jl. Sukajadi No. 123"}',
+        required: false,
+    }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], IsiBukuTamuDto.prototype, "alamat_detail", void 0);
 //# sourceMappingURL=isi-buku-tamu.dto.js.map

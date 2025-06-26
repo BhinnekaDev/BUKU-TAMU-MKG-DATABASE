@@ -4,6 +4,12 @@ export declare class AlamatDto {
     district_id: string;
     village_id: string;
 }
+export declare class AlamatDetailDto {
+    rt: string;
+    rw: string;
+    kode_pos: string;
+    nama_jalan: string;
+}
 export declare enum AsalPengunjung {
     BMKG = "BMKG",
     Dinas = "Dinas",
@@ -23,4 +29,5 @@ export declare class IsiBukuTamuDto {
     Asal_Pengunjung: string;
     Keterangan_Asal_Pengunjung?: string;
     alamat?: string;
+    alamat_detail?: string;
 }

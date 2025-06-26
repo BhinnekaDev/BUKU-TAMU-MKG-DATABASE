@@ -20,7 +20,7 @@ import { Request } from 'express';
 export class PengunjungController {
   constructor(private readonly pengunjungService: PengunjungService) {}
 
-  @Get()
+  @Get('asalpengunjung')
   getAll() {
     return this.pengunjungService.getAllAsalPengunjung();
   }
@@ -121,6 +121,17 @@ export class PengunjungController {
             village_id: '3204190005',
           }),
         },
+
+        alamat_detail: {
+          type: 'string',
+          example: JSON.stringify({
+            rt: '01',
+            rw: '05',
+            kode_pos: '40285',
+            nama_jalan: 'Jl. Sukajadi No. 123',
+          }),
+        },
+
         tanda_tangan: {
           type: 'string',
           format: 'binary',
