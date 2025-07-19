@@ -1,5 +1,5 @@
 import { IsiBukuTamuDto } from '@/pengunjung/dto/isi-buku-tamu.dto';
-import { WilayahResponseDto } from '@/pengunjung/dto/wilayah-response.dto';
+import { SearchPengunjungDto } from '@/pengunjung/dto/search-pengunjung.dto';
 import { PengunjungService } from '@/pengunjung/pengunjung.service';
 import { Request } from 'express';
 export declare class PengunjungController {
@@ -9,10 +9,6 @@ export declare class PengunjungController {
         value: string;
         label: string;
     }[];
-    getProvinceById(id: string): Promise<WilayahResponseDto[]>;
-    getRegencyById(id: string): Promise<WilayahResponseDto[]>;
-    getDistrictById(id: string): Promise<WilayahResponseDto[]>;
-    getVillageById(id: string): Promise<WilayahResponseDto[]>;
     getAllStasiun(): Promise<{
         message: string;
         data: {
@@ -20,11 +16,12 @@ export declare class PengunjungController {
             Nama_Stasiun: any;
         }[];
     }>;
-    getJumlahPengunjung(): Promise<{
+    getJumlahPengunjung(id_stasiun: string): Promise<{
         hariIni: number;
         mingguIni: number;
         bulanIni: number;
     }>;
+    searchPengunjung(dto: SearchPengunjungDto): Promise<any[]>;
     isiBukuTamu(dto: IsiBukuTamuDto, req: Request, file?: Express.Multer.File): Promise<{
         message: string;
     }>;

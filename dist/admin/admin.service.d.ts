@@ -41,7 +41,7 @@ export declare class AdminService {
     resetPassword(dto: ResetPasswordDto, ip: string | null, userAgent: string | null): Promise<{
         message: string;
     }>;
-    getBukuTamu(access_token: string, user_id: string): Promise<any>;
+    getBukuTamu(access_token: string, user_id: string, period?: 'today' | 'week' | 'month', startDate?: string, endDate?: string, filterStasiunId?: string): Promise<any>;
     getBukuTamuByPeriod(access_token: string, user_id: string, period: 'today' | 'week' | 'month'): Promise<any>;
     getBukuTamuHariIni(access_token: string, user_id: string): Promise<any>;
     getBukuTamuMingguIni(access_token: string, user_id: string): Promise<any>;
@@ -63,10 +63,21 @@ export declare class AdminService {
             Nama_Belakang_Pengunjung: any;
         }[];
     }[]>;
-    private getWeekNumber;
-    getStatistikKunjungan(userId: string, accessToken: string): Promise<{
-        mingguan: Record<string, number>;
-        bulanan: Record<string, number>;
-        tahunan: Record<string, number>;
-    }>;
+    getStatistikKunjungan(access_token: string, user_id: string): Promise<any>;
+    private getWeekOfMonth;
+    getFrekuensiTujuanKunjungan(access_token: string, user_id: string): Promise<any[]>;
+    getAsalPengunjungTerbanyak(access_token: string, user_id: string): Promise<{
+        asal: string;
+        jumlah: number;
+    }[]>;
+    getPerbandinganStasiun(access_token: string, user_id: string): Promise<{
+        nama_stasiun: string;
+        jumlah: number;
+    }[]>;
+    exportBukuTamu(access_token: string, user_id: string, bulan: string, tahun: string, format: string): Promise<Buffer>;
+    getWordCloudTujuanKunjungan(access_token: string, user_id: string): Promise<{
+        kata: string;
+        jumlah: number;
+    }[]>;
+    getInsightKebijakan(access_token: string, user_id: string): Promise<any>;
 }

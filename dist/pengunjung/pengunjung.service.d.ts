@@ -1,11 +1,10 @@
 import { IsiBukuTamuDto } from '@/pengunjung/dto/isi-buku-tamu.dto';
+import { SearchPengunjungDto } from '@/pengunjung/dto/search-pengunjung.dto';
 export declare enum AsalPengunjung {
     BMKG = "BMKG",
-    Dinas = "Dinas",
-    Universitas = "Universitas",
-    Media = "Media",
-    LembagaNonPemerintahan = "Lembaga Non Pemerintahan",
-    Umum = "Umum"
+    Pemerintah_Pusat_atau_Pemerintah_Daerah = "Pemerintah Pusat/Pemerintah Daerah",
+    Umum = "Umum",
+    Universitas = "Universitas"
 }
 export declare class PengunjungService {
     private readonly wilayahApi;
@@ -13,25 +12,6 @@ export declare class PengunjungService {
         value: string;
         label: string;
     }[];
-    getProvinceById(id: string): Promise<{
-        id: string;
-        name: string;
-    }>;
-    getRegencyById(id: string): Promise<{
-        id: string;
-        name: string;
-        province_id: string;
-    }>;
-    getDistrictById(id: string): Promise<{
-        id: string;
-        name: string;
-        regency_id: string;
-    }>;
-    getVillageById(id: string): Promise<{
-        id: string;
-        name: string;
-        district_id: string;
-    }>;
     getAllStasiun(): Promise<{
         message: string;
         data: {
@@ -39,7 +19,7 @@ export declare class PengunjungService {
             Nama_Stasiun: any;
         }[];
     }>;
-    getJumlahPengunjung(): Promise<{
+    getJumlahPengunjung(id_stasiun: string): Promise<{
         hariIni: number;
         mingguIni: number;
         bulanIni: number;
@@ -48,4 +28,5 @@ export declare class PengunjungService {
         message: string;
     }>;
     private formatWaktuKunjungan;
+    searchPengunjung(dto: SearchPengunjungDto): Promise<any[]>;
 }

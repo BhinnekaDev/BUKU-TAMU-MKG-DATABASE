@@ -6,11 +6,16 @@ import { UpdateAdminProfileDto } from '@/admin/dto/update-admin.dto';
 import { supabase } from '@/supabase/supabase.client';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import * as dayjs from 'dayjs';
+import * as ExcelJS from 'exceljs';
+import { PassThrough } from 'stream';
+const PDFDocument = require('pdfkit');
 
 @Injectable()
 export class AdminService {
@@ -159,14 +164,14 @@ export class AdminService {
 
     // Perpanjang masa berlaku token
     try {
-      // Alternatif 1: Gunakan refreshSession()
+      // Gunakan refreshSession()
       const { data: refreshedData, error: refreshError } =
         await supabase.auth.refreshSession();
       if (!refreshError && refreshedData?.session) {
         session = refreshedData.session;
       }
 
-      // Alternatif 2: Update session (tanpa expires_in)
+      // Update session (tanpa expires_in)
       await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
@@ -371,7 +376,7 @@ export class AdminService {
       throw new UnauthorizedException('Token tidak valid atau tidak sesuai');
     }
 
-    // 2. Get existing admin data
+    // 2. Get admin data
     const { data: existingAdmin, error: adminError } = await supabase
       .from('Admin')
       .select('Nama_Depan_Admin, Nama_Belakang_Admin, Foto_Admin')
@@ -387,7 +392,7 @@ export class AdminService {
     let updatedFields: string[] = [];
 
     try {
-      // 3. Handle photo upload if exists
+      // 3. Handle photo
       if (foto) {
         // Validate file
         if (!['image/jpeg', 'image/png'].includes(foto.mimetype)) {
@@ -401,7 +406,7 @@ export class AdminService {
         const fileExt = foto.originalname.split('.').pop();
         uploadedFileName = `${user_id}.${fileExt}`;
 
-        // Delete old photo if exists
+        // Delete old photo
         if (fotoUrl) {
           const oldFileName = fotoUrl.split('/').pop();
           await supabase.storage.from('foto-admin').remove([oldFileName!]);
@@ -423,7 +428,7 @@ export class AdminService {
         updatedFields.push('foto');
       }
 
-      // 4. Update password if provided
+      // 4. Update password
       if (password) {
         const { error: pwError } = await supabase.auth.admin.updateUserById(
           user_id,
@@ -435,7 +440,7 @@ export class AdminService {
         updatedFields.push('password');
       }
 
-      // 5. Prepare update payload
+      // 5. Prepare update
       const updatePayload: Record<string, any> = {};
       if (nama_depan && nama_depan !== existingAdmin.Nama_Depan_Admin) {
         updatePayload.Nama_Depan_Admin = nama_depan;
@@ -452,7 +457,7 @@ export class AdminService {
         updatePayload.Foto_Admin = fotoUrl;
       }
 
-      // 6. Update admin profile if there are changes
+      // 6. Update admin profile
       if (Object.keys(updatePayload).length > 0) {
         const { error: updateError } = await supabase
           .from('Admin')
@@ -464,7 +469,7 @@ export class AdminService {
         }
       }
 
-      // 7. Log activity if there were updates
+      // 7. Log activity
       if (updatedFields.length > 0) {
         await supabase.from('Activity_Log').insert({
           ID_User: user_id,
@@ -502,7 +507,7 @@ export class AdminService {
         updated_fields: updatedFields,
       };
     } catch (error) {
-      // Cleanup if error occurs after photo upload
+      // Catch kesalahan setelah mengunggah foto
       if (uploadedFileName) {
         await supabase.storage
           .from('foto-admin')
@@ -576,67 +581,146 @@ export class AdminService {
     return { message: 'Password berhasil direset' };
   }
 
-  async getBukuTamu(access_token: string, user_id: string): Promise<any> {
-    // 1. Verifikasi token Supabase
-    const { data: authData, error: authError } =
-      await supabase.auth.getUser(access_token);
+  async getBukuTamu(
+    access_token: string,
+    user_id: string,
+    period?: 'today' | 'week' | 'month',
+    startDate?: string,
+    endDate?: string,
+    filterStasiunId?: string,
+  ): Promise<any> {
+    try {
+      // 1. Verifikasi token Supabase
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser(access_token);
 
-    if (authError || !authData || authData.user?.id !== user_id) {
-      throw new UnauthorizedException(
-        'Token tidak valid atau tidak cocok dengan user_id',
-      );
-    }
-
-    const adminId = user_id;
-
-    // 2. Ambil data admin dari database
-    const { data: adminData, error: adminError } = await supabase
-      .from('Admin')
-      .select('Peran, ID_Stasiun')
-      .eq('ID_Admin', adminId)
-      .single();
-
-    if (adminError || !adminData) {
-      throw new BadRequestException('Data admin tidak ditemukan');
-    }
-
-    const isSuperadmin = adminData.Peran === 'Superadmin';
-
-    // 3. Siapkan query dasar
-    let bukuTamuQuery = supabase
-      .from('Buku_Tamu')
-      .select(
-        `
-      ID_Buku_Tamu,
-      ID_Pengunjung,
-      ID_Stasiun,
-      Tujuan,
-      Tanggal_Pengisian,
-      Waktu_Kunjungan,
-      Tanda_Tangan,
-      Pengunjung:ID_Pengunjung(ID_Pengunjung, Nama_Depan_Pengunjung, Nama_Belakang_Pengunjung, Asal_Pengunjung),
-      Stasiun:ID_Stasiun(Nama_Stasiun)
-    `,
-      )
-      .order('Tanggal_Pengisian', { ascending: false });
-
-    // 4. Jika bukan Superadmin, filter berdasarkan ID_Stasiun
-    if (!isSuperadmin) {
-      if (!adminData.ID_Stasiun) {
-        throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
+      if (authError || !authData || authData.user?.id !== user_id) {
+        throw new UnauthorizedException(
+          'Token tidak valid atau tidak cocok dengan user_id',
+        );
       }
 
-      bukuTamuQuery = bukuTamuQuery.eq('ID_Stasiun', adminData.ID_Stasiun);
+      // 2. Ambil data admin
+      const { data: adminData, error: adminError } = await supabase
+        .from('Admin')
+        .select('Peran, ID_Stasiun')
+        .eq('ID_Admin', user_id)
+        .single();
+
+      if (adminError || !adminData) {
+        throw new BadRequestException('Data admin tidak ditemukan');
+      }
+
+      const isSuperadmin = adminData.Peran === 'Superadmin';
+
+      // 3. Validasi jika non-superadmin mencoba menyaring dengan filterStasiunId
+      if (!isSuperadmin && filterStasiunId) {
+        throw new ForbiddenException(
+          'Anda tidak memiliki izin untuk memfilter berdasarkan ID Stasiun',
+        );
+      }
+
+      // 4. Bangun query
+      let bukuTamuQuery = supabase
+        .from('Buku_Tamu')
+        .select(
+          `
+        ID_Buku_Tamu,
+        ID_Pengunjung,
+        ID_Stasiun,
+        Tujuan,
+        Tanggal_Pengisian,
+        Waktu_Kunjungan,
+        Tanda_Tangan,
+        Pengunjung:ID_Pengunjung(
+          ID_Pengunjung,
+          Nama_Depan_Pengunjung,
+          Nama_Belakang_Pengunjung,
+          Email_Pengunjung,
+          No_Telepon_Pengunjung,
+          Asal_Pengunjung,
+          Asal_Instansi
+        ),
+        Stasiun:ID_Stasiun(Nama_Stasiun)
+      `,
+        )
+        .order('Tanggal_Pengisian', { ascending: false });
+
+      // 5. Filter berdasarkan peran
+      if (!isSuperadmin) {
+        if (!adminData.ID_Stasiun) {
+          throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
+        }
+        bukuTamuQuery = bukuTamuQuery.eq('ID_Stasiun', adminData.ID_Stasiun);
+      } else if (filterStasiunId) {
+        bukuTamuQuery = bukuTamuQuery.eq('ID_Stasiun', filterStasiunId);
+      }
+
+      // 6. Filter waktu
+      const now = new Date();
+      const today = new Date(now.setHours(0, 0, 0, 0));
+      const startOfWeek = new Date();
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      if (period === 'today') {
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          today.toISOString(),
+        );
+      } else if (period === 'week') {
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          startOfWeek.toISOString(),
+        );
+      } else if (period === 'month') {
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          startOfMonth.toISOString(),
+        );
+      }
+
+      if (startDate) {
+        bukuTamuQuery = bukuTamuQuery.gte(
+          'Tanggal_Pengisian',
+          new Date(startDate).toISOString(),
+        );
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        bukuTamuQuery = bukuTamuQuery.lte(
+          'Tanggal_Pengisian',
+          end.toISOString(),
+        );
+      }
+
+      // 7. Eksekusi
+      const { data, error } = await bukuTamuQuery;
+      if (error) {
+        throw new InternalServerErrorException(
+          'Gagal mengambil data buku tamu',
+        );
+      }
+
+      return {
+        filter: {
+          period: period || null,
+          startDate: startDate || null,
+          endDate: endDate || null,
+          filterStasiunId: isSuperadmin
+            ? filterStasiunId || null
+            : adminData.ID_Stasiun,
+        },
+        isSuperadmin,
+        count: data.length,
+        data,
+      };
+    } catch (err) {
+      throw err;
     }
-
-    // 5. Eksekusi query
-    const { data: bukuTamuData, error: bukuTamuError } = await bukuTamuQuery;
-
-    if (bukuTamuError) {
-      throw new InternalServerErrorException('Gagal mengambil data buku tamu');
-    }
-
-    return bukuTamuData;
   }
 
   async getBukuTamuByPeriod(
@@ -644,7 +728,7 @@ export class AdminService {
     user_id: string,
     period: 'today' | 'week' | 'month',
   ): Promise<any> {
-    // 1. Verify Supabase token
+    // 1. Verivikasi Supabase token
     const { data: authData, error: authError } =
       await supabase.auth.getUser(access_token);
 
@@ -669,7 +753,7 @@ export class AdminService {
 
     const isSuperadmin = adminData.Peran === 'Superadmin';
 
-    // 3. Prepare base query
+    // 3. Query buku tamu
     let bukuTamuQuery = supabase
       .from('Buku_Tamu')
       .select(
@@ -683,17 +767,20 @@ export class AdminService {
         Tanda_Tangan,
 
         Pengunjung:ID_Pengunjung(
-          ID_Pengunjung, 
-          Nama_Depan_Pengunjung, 
-          Nama_Belakang_Pengunjung, 
-          Asal_Pengunjung
+        ID_Pengunjung,
+        Nama_Depan_Pengunjung,
+        Nama_Belakang_Pengunjung,
+        Email_Pengunjung,
+        No_Telepon_Pengunjung,
+        Asal_Pengunjung,
+        Asal_Instansi
         ),
         Stasiun:ID_Stasiun(Nama_Stasiun)
       `,
       )
       .order('Tanggal_Pengisian', { ascending: false });
 
-    // 4. Apply station filter for non-superadmins
+    // 4. Filter untuk admin
     if (!isSuperadmin) {
       if (!adminData.ID_Stasiun) {
         throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
@@ -701,7 +788,7 @@ export class AdminService {
       bukuTamuQuery = bukuTamuQuery.eq('ID_Stasiun', adminData.ID_Stasiun);
     }
 
-    // 5. Apply time period filter
+    // 5. filter waktu
     const now = new Date();
     const startOfDay = new Date(now.setHours(0, 0, 0, 0));
     const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -892,7 +979,7 @@ export class AdminService {
       const kunjunganDate = new Date(item.Tanggal_Pengisian);
       const matchesDate = (() => {
         const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
+        const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null; //T23 stand for end of the day
         return (
           (!start || kunjunganDate >= start) && (!end || kunjunganDate <= end)
         );
@@ -904,82 +991,604 @@ export class AdminService {
     return filtered;
   }
 
-  private getWeekNumber(d: Date): number {
-    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = date.getUTCDay() || 7;
-    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-    return Math.ceil(
-      ((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
-    );
-  }
+  async getStatistikKunjungan(
+    access_token: string,
+    user_id: string,
+  ): Promise<any> {
+    console.log('🚀 Start getStatistikKunjungan');
 
-  async getStatistikKunjungan(userId: string, accessToken: string) {
-    if (!userId || !accessToken) {
-      throw new UnauthorizedException(
-        'user_id atau access_token tidak ditemukan',
-      );
-    }
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+    console.log('authData:', authData);
+    console.log('authError:', authError);
 
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.getUser(accessToken);
-    if (sessionError || !sessionData?.user || sessionData.user.id !== userId) {
-      throw new UnauthorizedException(
-        'Token tidak valid atau tidak cocok dengan user_id',
-      );
+    if (authError || authData.user?.id !== user_id) {
+      console.error('Token tidak valid atau user_id tidak cocok');
+      throw new UnauthorizedException('Token tidak valid');
     }
 
     const { data: adminData, error: adminError } = await supabase
       .from('Admin')
       .select('Peran, ID_Stasiun')
-      .eq('ID_Admin', userId)
+      .eq('ID_Admin', user_id)
       .single();
 
+    console.log('adminData:', adminData);
+    console.log('adminError:', adminError);
+
     if (adminError || !adminData) {
-      throw new UnauthorizedException('Admin tidak ditemukan');
+      console.error('Data admin tidak ditemukan');
+      throw new BadRequestException('Data admin tidak ditemukan');
     }
 
     const isSuperadmin = adminData.Peran === 'Superadmin';
-    const idStasiun = adminData.ID_Stasiun;
+    console.log('isSuperadmin:', isSuperadmin);
 
-    // Ambil semua data kunjungan
     let query = supabase
       .from('Buku_Tamu')
       .select('Tanggal_Pengisian')
-      .order('Tanggal_Pengisian', { ascending: true });
+      .not('Tanggal_Pengisian', 'is', null);
 
     if (!isSuperadmin) {
-      query = query.eq('ID_Stasiun', idStasiun);
+      if (!adminData.ID_Stasiun) {
+        console.error('❗ Admin tidak memiliki ID_Stasiun');
+        throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
+      }
+      query = query.eq('ID_Stasiun', adminData.ID_Stasiun);
     }
 
     const { data: kunjunganData, error } = await query;
+    console.log('kunjunganData:', kunjunganData);
+    console.log('queryError:', error);
+
     if (error) {
-      throw new BadRequestException('Gagal mengambil data kunjungan');
+      console.error('Gagal mengambil data kunjungan');
+      throw new InternalServerErrorException('Gagal mengambil data kunjungan');
     }
 
-    const statistik = {
-      mingguan: {} as Record<string, number>,
-      bulanan: {} as Record<string, number>,
-      tahunan: {} as Record<string, number>,
-    };
+    const statistik: Record<
+      string,
+      Record<string, Record<string, number>>
+    > = {};
 
-    for (const kunjungan of kunjunganData) {
-      const tanggal = new Date(kunjungan.Tanggal_Pengisian);
+    for (const item of kunjunganData) {
+      const tanggal = new Date(item.Tanggal_Pengisian);
+      const tahun = `${tanggal.getFullYear()}`;
+      const bulan = `${tanggal.getMonth() + 1}`.padStart(2, '0');
+      const minggu = `${this.getWeekOfMonth(tanggal)}`.padStart(2, '0');
 
-      // Mingguan
-      const week = this.getWeekNumber(tanggal);
-      const mingguKey = `${tanggal.getFullYear()}-Minggu${week}`;
-      statistik.mingguan[mingguKey] = (statistik.mingguan[mingguKey] || 0) + 1;
+      console.log(`Tahun: ${tahun}, Bulan: ${bulan}, Minggu: ${minggu}`);
 
-      // Bulanan
-      const bulanKey = `${tanggal.getFullYear()}-${String(tanggal.getMonth() + 1).padStart(2, '0')}`;
-      statistik.bulanan[bulanKey] = (statistik.bulanan[bulanKey] || 0) + 1;
+      if (!statistik[tahun]) statistik[tahun] = {};
+      if (!statistik[tahun][bulan]) statistik[tahun][bulan] = {};
+      if (!statistik[tahun][bulan][minggu]) statistik[tahun][bulan][minggu] = 0;
 
-      // Tahunan
-      const tahunKey = `${tanggal.getFullYear()}`;
-      statistik.tahunan[tahunKey] = (statistik.tahunan[tahunKey] || 0) + 1;
+      statistik[tahun][bulan][minggu]++;
     }
 
+    console.log(' Statistik akhir:', JSON.stringify(statistik, null, 2));
     return statistik;
+  }
+
+  // Fungsi bantu hitung minggu ke-n dalam bulan
+  private getWeekOfMonth(date: Date): number {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const dayOfMonth = date.getDate();
+    const adjustedDay = dayOfMonth + firstDay.getDay();
+    return Math.ceil(adjustedDay / 7);
+  }
+
+  async getFrekuensiTujuanKunjungan(
+    access_token: string,
+    user_id: string,
+  ): Promise<any[]> {
+    // 1. Verifikasi token Supabase
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+
+    if (authError || !authData || authData.user?.id !== user_id) {
+      throw new UnauthorizedException(
+        'Token tidak valid atau tidak cocok dengan user_id',
+      );
+    }
+
+    // 2. Ambil data admin
+    const { data: adminData, error: adminError } = await supabase
+      .from('Admin')
+      .select('Peran, ID_Stasiun')
+      .eq('ID_Admin', user_id)
+      .single();
+
+    if (adminError || !adminData) {
+      throw new BadRequestException('Data admin tidak ditemukan');
+    }
+
+    const isSuperadmin = adminData.Peran === 'Superadmin';
+
+    // 3. Ambil data Buku_Tamu sesuai peran
+    let query = supabase
+      .from('Buku_Tamu')
+      .select('Tujuan', { count: 'exact', head: false });
+
+    if (!isSuperadmin) {
+      if (!adminData.ID_Stasiun) {
+        throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
+      }
+      query = query.eq('ID_Stasiun', adminData.ID_Stasiun);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error mengambil tujuan kunjungan:', error);
+      throw new InternalServerErrorException(
+        'Gagal mengambil data tujuan kunjungan',
+      );
+    }
+
+    // 4. Hitung jumlah tiap tujuan
+    const result: Record<string, number> = {};
+    for (const item of data || []) {
+      const tujuan = item.Tujuan?.trim() || 'Tidak Diketahui';
+      result[tujuan] = (result[tujuan] || 0) + 1;
+    }
+
+    // 5. Ubah ke format array
+    return Object.entries(result).map(([tujuan, jumlah]) => ({
+      tujuan,
+      jumlah,
+    }));
+  }
+
+  async getAsalPengunjungTerbanyak(
+    access_token: string,
+    user_id: string,
+  ): Promise<{ asal: string; jumlah: number }[]> {
+    // 1. Verifikasi token Supabase
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+
+    if (authError || !authData || authData.user?.id !== user_id) {
+      throw new UnauthorizedException(
+        'Token tidak valid atau tidak cocok dengan user_id',
+      );
+    }
+
+    // 2. Ambil data admin
+    const { data: adminData, error: adminError } = await supabase
+      .from('Admin')
+      .select('Peran, ID_Stasiun')
+      .eq('ID_Admin', user_id)
+      .single();
+
+    if (adminError || !adminData) {
+      throw new BadRequestException('Data admin tidak ditemukan');
+    }
+
+    const isSuperadmin = adminData.Peran === 'Superadmin';
+
+    // 3. Ambil data Buku_Tamu + Pengunjung (khusus field Asal_Pengunjung)
+    let query = supabase
+      .from('Buku_Tamu')
+      .select('ID_Pengunjung, Pengunjung:ID_Pengunjung(Asal_Pengunjung)');
+
+    if (!isSuperadmin) {
+      if (!adminData.ID_Stasiun) {
+        throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
+      }
+
+      query = query.eq('ID_Stasiun', adminData.ID_Stasiun);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error asal pengunjung:', error);
+      throw new InternalServerErrorException(
+        'Gagal mengambil data asal pengunjung',
+      );
+    }
+
+    // 4. Hitung jumlah kunjungan per asal pengunjung
+    const countMap: Record<string, number> = {};
+    for (const item of data || []) {
+      let asal: string = 'Tidak Diketahui';
+      if (Array.isArray(item.Pengunjung) && item.Pengunjung.length > 0) {
+        asal =
+          (item.Pengunjung[0] as { Asal_Pengunjung?: string })
+            .Asal_Pengunjung || 'Tidak Diketahui';
+      } else if (item.Pengunjung && typeof item.Pengunjung === 'object') {
+        asal =
+          (item.Pengunjung as { Asal_Pengunjung?: string }).Asal_Pengunjung ||
+          'Tidak Diketahui';
+      }
+      countMap[asal] = (countMap[asal] || 0) + 1;
+    }
+
+    // 5. Ubah ke bentuk array dan urutkan
+    const result = Object.entries(countMap)
+      .map(([asal, jumlah]) => ({ asal, jumlah }))
+      .sort((a, b) => b.jumlah - a.jumlah); // urut dari terbanyak
+
+    return result;
+  }
+
+  async getPerbandinganStasiun(
+    access_token: string,
+    user_id: string,
+  ): Promise<{ nama_stasiun: string; jumlah: number }[]> {
+    // 1. Verifikasi token Supabase
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+
+    if (authError || !authData || authData.user?.id !== user_id) {
+      throw new UnauthorizedException(
+        'Token tidak valid atau tidak cocok dengan user_id',
+      );
+    }
+
+    // 2. Ambil data admin
+    const { data: adminData, error: adminError } = await supabase
+      .from('Admin')
+      .select('Peran, ID_Stasiun')
+      .eq('ID_Admin', user_id)
+      .single();
+
+    if (adminError || !adminData) {
+      throw new BadRequestException('Data admin tidak ditemukan');
+    }
+
+    const isSuperadmin = adminData.Peran === 'Superadmin';
+
+    // 3. Ambil seluruh data Buku_Tamu + relasi Stasiun
+    let query = supabase
+      .from('Buku_Tamu')
+      .select(`ID_Stasiun, Stasiun:ID_Stasiun(Nama_Stasiun)`);
+
+    if (!isSuperadmin) {
+      if (!adminData.ID_Stasiun) {
+        throw new BadRequestException('Admin tidak memiliki ID_Stasiun');
+      }
+
+      query = query.eq('ID_Stasiun', adminData.ID_Stasiun);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error ambil data perbandingan stasiun:', error);
+      throw new InternalServerErrorException(
+        'Gagal mengambil data perbandingan stasiun',
+      );
+    }
+
+    // 4. Hitung jumlah kunjungan per stasiun
+    const countMap: Record<string, number> = {};
+
+    for (const item of data || []) {
+      const namaStasiun =
+        Array.isArray(item.Stasiun) && item.Stasiun.length > 0
+          ? (item.Stasiun[0] as { Nama_Stasiun?: string }).Nama_Stasiun ||
+            'Tidak Diketahui'
+          : (item.Stasiun as { Nama_Stasiun?: string })?.Nama_Stasiun ||
+            'Tidak Diketahui';
+      countMap[namaStasiun] = (countMap[namaStasiun] || 0) + 1;
+    }
+
+    // 5. Ubah jadi array dan urutkan dari terbesar
+    const result = Object.entries(countMap)
+      .map(([nama_stasiun, jumlah]) => ({ nama_stasiun, jumlah }))
+      .sort((a, b) => b.jumlah - a.jumlah);
+
+    return result;
+  }
+
+  async exportBukuTamu(
+    access_token: string,
+    user_id: string,
+    bulan: string,
+    tahun: string,
+    format: string,
+  ): Promise<Buffer> {
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+
+    if (authError || authData.user?.id !== user_id) {
+      throw new UnauthorizedException('Token tidak valid');
+    }
+
+    const { data: adminData } = await supabase
+      .from('Admin')
+      .select('Peran, ID_Stasiun')
+      .eq('ID_Admin', user_id)
+      .single();
+
+    if (!adminData) {
+      throw new BadRequestException('Admin tidak ditemukan');
+    }
+
+    const isSuperadmin = adminData.Peran === 'Superadmin';
+
+    let query = supabase.from('Buku_Tamu').select(`
+    ID_Buku_Tamu, Tujuan, Tanggal_Pengisian, Waktu_Kunjungan,
+    Pengunjung:ID_Pengunjung(Nama_Depan_Pengunjung, Nama_Belakang_Pengunjung, Asal_Pengunjung, Asal_Instansi),
+    Stasiun:ID_Stasiun(Nama_Stasiun)
+  `);
+
+    let startDate: string;
+    let endDate: string;
+
+    startDate = bulan !== 'all' ? `${tahun}-${bulan}-01` : `${tahun}-01-01`;
+
+    endDate =
+      bulan !== 'all'
+        ? dayjs(`${tahun}-${bulan}-01`).endOf('month').format('YYYY-MM-DD')
+        : `${tahun}-12-31`;
+
+    query = query
+      .gte('Tanggal_Pengisian', startDate)
+      .lte('Tanggal_Pengisian', endDate);
+
+    console.log('Filter tanggal:', startDate, '->', endDate);
+
+    query = query.order('Tanggal_Pengisian', { ascending: false });
+
+    if (!isSuperadmin) {
+      query = query.eq('ID_Stasiun', adminData.ID_Stasiun);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new InternalServerErrorException('Gagal mengambil data');
+
+    if (format === 'excel') {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Buku Tamu');
+
+      sheet.addRow([
+        'Nama',
+        'Asal',
+        'Keterangan Asal',
+        'Tujuan',
+        'Stasiun',
+        'Tanggal',
+        'Waktu',
+      ]);
+
+      data.forEach((item) => {
+        const pengunjung = item.Pengunjung as {
+          Nama_Depan_Pengunjung?: string;
+          Nama_Belakang_Pengunjung?: string;
+          Asal_Pengunjung?: string;
+          Asal_Instansi?: string;
+        };
+
+        const stasiun = item.Stasiun as { Nama_Stasiun?: string };
+
+        sheet.addRow([
+          `${pengunjung?.Nama_Depan_Pengunjung ?? ''} ${pengunjung?.Nama_Belakang_Pengunjung ?? ''}`,
+          pengunjung?.Asal_Pengunjung ?? '',
+          pengunjung?.Asal_Instansi ?? '',
+          item.Tujuan,
+          stasiun?.Nama_Stasiun ?? '',
+          item.Tanggal_Pengisian,
+          item.Waktu_Kunjungan,
+        ]);
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      return Buffer.from(buffer);
+    } else if (format === 'pdf') {
+      const doc = new PDFDocument();
+      const stream = new PassThrough();
+      const buffers: Buffer[] = [];
+
+      doc.pipe(stream);
+      doc
+        .fontSize(14)
+        .text(`Laporan Buku Tamu - ${bulan}/${tahun}`, { align: 'center' });
+      doc.moveDown();
+
+      data.forEach((item, index) => {
+        const pengunjung = Array.isArray(item.Pengunjung)
+          ? item.Pengunjung[0]
+          : item.Pengunjung;
+
+        const stasiun = Array.isArray(item.Stasiun)
+          ? item.Stasiun[0]
+          : item.Stasiun;
+
+        doc
+          .fontSize(10)
+          .text(
+            `${index + 1}. Nama: ${pengunjung?.Nama_Depan_Pengunjung ?? ''} ${
+              pengunjung?.Nama_Belakang_Pengunjung ?? ''
+            }\n   Asal: ${pengunjung?.Asal_Pengunjung ?? ''}\n Keterangan Asal: ${pengunjung?.Asal_Instansi ?? ''}\n   Tujuan: ${
+              item.Tujuan
+            }\n   Stasiun: ${stasiun?.Nama_Stasiun ?? ''}\n   Tanggal: ${
+              item.Tanggal_Pengisian
+            }\n   Waktu: ${item.Waktu_Kunjungan ?? ''}\n`,
+          );
+        doc.moveDown();
+      });
+
+      doc.end();
+
+      return new Promise<Buffer>((resolve, reject) => {
+        stream.on('data', (chunk) => buffers.push(chunk));
+        stream.on('end', () => resolve(Buffer.concat(buffers)));
+        stream.on('error', (err) => reject(err));
+      });
+    }
+
+    throw new BadRequestException('Format export tidak didukung');
+  }
+
+  async getWordCloudTujuanKunjungan(
+    access_token: string,
+    user_id: string,
+  ): Promise<{ kata: string; jumlah: number }[]> {
+    // 1. Verifikasi token
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+
+    if (authError || !authData || authData.user?.id !== user_id) {
+      throw new UnauthorizedException('Token tidak valid atau tidak cocok');
+    }
+
+    // 2. Validasi role Superadmin
+    const { data: adminData, error: adminError } = await supabase
+      .from('Admin')
+      .select('Peran')
+      .eq('ID_Admin', user_id)
+      .single();
+
+    if (adminError || !adminData) {
+      throw new BadRequestException('Data admin tidak ditemukan');
+    }
+
+    if (adminData.Peran !== 'Superadmin') {
+      throw new ForbiddenException(
+        'Hanya Superadmin yang dapat mengakses fitur ini',
+      );
+    }
+
+    // 3. Ambil semua tujuan dari Buku_Tamu
+    const { data, error } = await supabase.from('Buku_Tamu').select('Tujuan');
+
+    if (error) {
+      console.error('Error ambil data tujuan:', error);
+      throw new InternalServerErrorException(
+        'Gagal mengambil data tujuan kunjungan',
+      );
+    }
+
+    // 4. Olah kata-kata dari field Tujuan → hitung frekuensi
+    const wordMap: Record<string, number> = {};
+    const stopWords = ['dan', 'untuk', 'dengan', 'ke', 'yang', 'di', 'dari'];
+
+    for (const item of data || []) {
+      const tujuan = item.Tujuan || '';
+      const words = tujuan
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9\u00C0-\u024F\s]/g, '') // hapus tanda baca
+        .split(/\s+/)
+        .filter((word) => word && !stopWords.includes(word));
+
+      for (const word of words) {
+        wordMap[word] = (wordMap[word] || 0) + 1;
+      }
+    }
+
+    // 5. Ubah ke array dan urutkan berdasarkan frekuensi
+    const result = Object.entries(wordMap)
+      .map(([kata, jumlah]) => ({ kata, jumlah }))
+      .sort((a, b) => b.jumlah - a.jumlah);
+
+    return result;
+  }
+
+  async getInsightKebijakan(
+    access_token: string,
+    user_id: string,
+  ): Promise<any> {
+    // 1. Verifikasi token
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(access_token);
+
+    if (authError || !authData || authData.user?.id !== user_id) {
+      throw new UnauthorizedException('Token tidak valid atau tidak cocok');
+    }
+
+    // 2. Cek peran admin
+    const { data: adminData, error: adminError } = await supabase
+      .from('Admin')
+      .select('Peran')
+      .eq('ID_Admin', user_id)
+      .single();
+
+    if (adminError || !adminData) {
+      throw new BadRequestException('Data admin tidak ditemukan');
+    }
+
+    if (adminData.Peran !== 'Superadmin') {
+      throw new ForbiddenException(
+        'Hanya Superadmin yang dapat mengakses insight kebijakan',
+      );
+    }
+
+    // 3. Ambil semua data Buku_Tamu (beserta relasi)
+    const { data: bukuTamu, error } = await supabase.from('Buku_Tamu').select(`
+      Tujuan,
+      Tanggal_Pengisian,
+      Pengunjung:ID_Pengunjung(Asal_Pengunjung)
+    `);
+
+    if (error) {
+      console.error('Error ambil data buku tamu:', error);
+      throw new InternalServerErrorException('Gagal mengambil data insight');
+    }
+
+    // 4. Analisis: hitung frekuensi Tujuan, Hari, dan Asal
+    const tujuanMap: Record<string, number> = {};
+    const hariMap: Record<string, number> = {};
+    const asalMap: Record<string, number> = {};
+
+    for (const item of bukuTamu || []) {
+      // Tujuan
+      const tujuan = item.Tujuan?.trim() || 'Tidak Diketahui';
+      tujuanMap[tujuan] = (tujuanMap[tujuan] || 0) + 1;
+
+      // Hari
+      const hari = item.Tanggal_Pengisian
+        ? new Date(item.Tanggal_Pengisian).toLocaleDateString('id-ID', {
+            weekday: 'long',
+          })
+        : 'Tidak Diketahui';
+      hariMap[hari] = (hariMap[hari] || 0) + 1;
+
+      // Asal Pengunjung
+      let asal = 'Tidak Diketahui';
+      if (Array.isArray(item.Pengunjung) && item.Pengunjung.length > 0) {
+        asal =
+          (item.Pengunjung[0] as { Asal_Pengunjung?: string })
+            .Asal_Pengunjung || 'Tidak Diketahui';
+      } else if (item.Pengunjung && typeof item.Pengunjung === 'object') {
+        asal =
+          (item.Pengunjung as { Asal_Pengunjung?: string }).Asal_Pengunjung ||
+          'Tidak Diketahui';
+      }
+      asalMap[asal] = (asalMap[asal] || 0) + 1;
+    }
+
+    const getDominan = (map: Record<string, number>) =>
+      Object.entries(map).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      'Tidak Diketahui';
+
+    const tujuanTerbanyak = getDominan(tujuanMap);
+    const hariTertinggi = getDominan(hariMap);
+    const asalTerbanyak = getDominan(asalMap);
+
+    // 5. Susun insight kebijakan
+    const insight = [
+      {
+        judul: 'Tujuan Kunjungan Terbanyak',
+        kesimpulan: `Sebagian besar pengunjung datang untuk "${tujuanTerbanyak}".`,
+        saran: tujuanTerbanyak.includes('edukasi')
+          ? 'Pertimbangkan menambah fasilitas edukatif seperti ruang edukasi atau display interaktif.'
+          : `Evaluasi dan tingkatkan layanan terkait "${tujuanTerbanyak}".`,
+      },
+      {
+        judul: 'Hari Tersibuk Kunjungan',
+        kesimpulan: `Hari dengan kunjungan terbanyak adalah hari ${hariTertinggi}.`,
+        saran: `Pertimbangkan menambah petugas atau jam operasional tambahan pada hari ${hariTertinggi}.`,
+      },
+      {
+        judul: 'Asal Pengunjung Terbanyak',
+        kesimpulan: `Mayoritas pengunjung berasal dari kelompok "${asalTerbanyak}".`,
+        saran: `Buat program khusus atau kerjasama dengan pihak ${asalTerbanyak.toLowerCase()}.`,
+      },
+    ];
+
+    return { insight };
   }
 }

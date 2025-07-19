@@ -14,7 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PengunjungController = void 0;
 const isi_buku_tamu_dto_1 = require("./dto/isi-buku-tamu.dto");
-const wilayah_response_dto_1 = require("./dto/wilayah-response.dto");
+const search_pengunjung_dto_1 = require("./dto/search-pengunjung.dto");
 const pengunjung_service_1 = require("./pengunjung.service");
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
@@ -27,32 +27,17 @@ let PengunjungController = class PengunjungController {
     getAll() {
         return this.pengunjungService.getAllAsalPengunjung();
     }
-    async getProvinceById(id) {
-        const result = await this.pengunjungService.getProvinceById(id);
-        return Array.isArray(result) ? result : [result];
-    }
-    async getRegencyById(id) {
-        const result = await this.pengunjungService.getRegencyById(id);
-        return [result];
-    }
-    async getDistrictById(id) {
-        const result = await this.pengunjungService.getDistrictById(id);
-        return [result];
-    }
-    async getVillageById(id) {
-        const result = await this.pengunjungService.getVillageById(id);
-        return [result];
-    }
     async getAllStasiun() {
         return this.pengunjungService.getAllStasiun();
     }
-    async getJumlahPengunjung() {
-        try {
-            return await this.pengunjungService.getJumlahPengunjung();
+    async getJumlahPengunjung(id_stasiun) {
+        if (!id_stasiun) {
+            throw new common_1.BadRequestException('Parameter id_stasiun wajib diisi.');
         }
-        catch (error) {
-            throw error;
-        }
+        return this.pengunjungService.getJumlahPengunjung(id_stasiun);
+    }
+    async searchPengunjung(dto) {
+        return this.pengunjungService.searchPengunjung(dto);
     }
     async isiBukuTamu(dto, req, file) {
         try {
@@ -75,39 +60,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PengunjungController.prototype, "getAll", null);
 __decorate([
-    (0, common_1.Get)('provinces/:id'),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'List of provinces',
-        type: [wilayah_response_dto_1.WilayahResponseDto],
-    }),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], PengunjungController.prototype, "getProvinceById", null);
-__decorate([
-    (0, common_1.Get)('regencies/:id'),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], PengunjungController.prototype, "getRegencyById", null);
-__decorate([
-    (0, common_1.Get)('districts/:id'),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], PengunjungController.prototype, "getDistrictById", null);
-__decorate([
-    (0, common_1.Get)('villages/:id'),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], PengunjungController.prototype, "getVillageById", null);
-__decorate([
     (0, common_1.Get)(),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -115,10 +67,20 @@ __decorate([
 ], PengunjungController.prototype, "getAllStasiun", null);
 __decorate([
     (0, common_1.Get)('jumlah'),
+    (0, swagger_1.ApiQuery)({ name: 'id_stasiun', required: true, type: String }),
+    __param(0, (0, common_1.Query)('id_stasiun')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PengunjungController.prototype, "getJumlahPengunjung", null);
+__decorate([
+    (0, common_1.Post)('search'),
+    (0, swagger_1.ApiBody)({ type: search_pengunjung_dto_1.SearchPengunjungDto }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [search_pengunjung_dto_1.SearchPengunjungDto]),
+    __metadata("design:returntype", Promise)
+], PengunjungController.prototype, "searchPengunjung", null);
 __decorate([
     (0, common_1.Post)('isi-buku-tamu'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('tanda_tangan')),
@@ -144,40 +106,22 @@ __decorate([
                     type: 'string',
                     enum: [
                         'BMKG',
-                        'Dinas',
                         'Universitas',
-                        'Media',
-                        'Lembaga Non Pemerintahan',
+                        'Pemerintah Pusat/Pemerintah Daerah',
                         'Umum',
                     ],
-                    example: 'Dinas',
+                    example: 'BMKG',
                 },
-                Keterangan_Asal_Pengunjung: {
+                Asal_Instansi: {
                     type: 'string',
                     example: 'Perwakilan dari Dishub Jawa Barat',
                 },
                 waktu_kunjungan: {
                     type: 'string',
                     example: 'Senin, 10 Juni 2024, 14.30',
+                    description: 'Waktu kunjungan dalam format yang mudah dibaca',
                 },
-                alamat: {
-                    type: 'string',
-                    example: JSON.stringify({
-                        province_id: '32',
-                        regency_id: '3204',
-                        district_id: '3204190',
-                        village_id: '3204190005',
-                    }),
-                },
-                alamat_detail: {
-                    type: 'string',
-                    example: JSON.stringify({
-                        rt: '01',
-                        rw: '05',
-                        kode_pos: '40285',
-                        nama_jalan: 'Jl. Sukajadi No. 123',
-                    }),
-                },
+                Alamat_Lengkap: { type: 'string', example: 'Alamat Jalan' },
                 tanda_tangan: {
                     type: 'string',
                     format: 'binary',

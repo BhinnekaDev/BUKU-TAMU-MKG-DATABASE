@@ -1,4 +1,5 @@
 import { AdminService } from '@/admin/admin.service';
+import { ExportBukuTamuDto } from '@/admin/dto/export-buku-tamu.dto';
 import { LoginAdminDto } from '@/admin/dto/login-admin.dto';
 import { LogoutAdminDto } from '@/admin/dto/logout-admin.dto';
 import { RegisterAdminDto } from '@/admin/dto/register-admin.dto';
@@ -16,9 +17,11 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UnauthorizedException,
   UploadedFile,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -26,8 +29,9 @@ import {
   ApiBody,
   ApiConsumes,
   ApiHeader,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Response as ExpressResponse, Request } from 'express';
 
 @Controller('admin')
 export class AdminController {
@@ -159,21 +163,33 @@ export class AdminController {
   }
 
   @Get('buku-tamu')
-  @ApiHeader({ name: 'user_id', required: true })
-  @ApiHeader({ name: 'access_token', required: true })
-  async getBukuTamu(@Req() req: Request): Promise<any> {
-    const access_token = req.headers['access_token']?.toString();
-    const user_id = req.headers['user_id']?.toString();
-
-    if (!access_token || !user_id) {
-      throw new BadRequestException(
-        'Header access_token dan user_id wajib diisi',
-      );
-    }
-    return this.adminService.getBukuTamu(access_token, user_id);
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    enum: ['today', 'week', 'month'],
+  })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'filterStasiunId', required: false })
+  async getBukuTamu(
+    @Headers('access_token') access_token: string,
+    @Headers('user_id') user_id: string,
+    @Query('period') period?: 'today' | 'week' | 'month',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('filterStasiunId') filterStasiunId?: string,
+  ) {
+    return this.adminService.getBukuTamu(
+      access_token,
+      user_id,
+      period,
+      startDate,
+      endDate,
+      filterStasiunId,
+    );
   }
 
-  @Get('hari-ini')
+  @Get('buku-tamu/hari-ini')
   async getHariIni(
     @Headers('access_token') authorization: string,
     @Headers('user_id') user_id: string,
@@ -182,7 +198,7 @@ export class AdminController {
     return this.adminService.getBukuTamuHariIni(access_token, user_id);
   }
 
-  @Get('minggu-ini')
+  @Get('buku-tamu/minggu-ini')
   async getMingguIni(
     @Headers('access_token') authorization: string,
     @Headers('user_id') user_id: string,
@@ -191,7 +207,7 @@ export class AdminController {
     return this.adminService.getBukuTamuMingguIni(access_token, user_id);
   }
 
-  @Get('bulan-ini')
+  @Get('buku-tamu/bulan-ini')
   async getBulanIni(
     @Headers('access_token') authorization: string,
     @Headers('user_id') user_id: string,
@@ -255,17 +271,45 @@ export class AdminController {
   }
 
   @Get('statistik')
-  @ApiHeader({ name: 'user_id', required: true })
-  @ApiHeader({ name: 'access_token', required: true })
-  async getStatistik(@Req() req: Request) {
-    const access_token = req.headers['access_token']?.toString();
-    const user_id = req.headers['user_id']?.toString();
-    if (!user_id || !access_token) {
-      throw new UnauthorizedException(
-        'user_id atau access_token tidak ditemukan',
-      );
+  async getStatistikKunjungan(
+    @Headers('access_token') access_token: string,
+    @Headers('user_id') user_id: string,
+  ) {
+    if (!access_token || !user_id) {
+      throw new UnauthorizedException('Token dan user_id wajib dikirim');
     }
-    return this.adminService.getStatistikKunjungan(user_id, access_token);
+
+    return await this.adminService.getStatistikKunjungan(access_token, user_id);
+  }
+
+  @Get('statistik/frekuensi-tujuan')
+  @ApiQuery({ name: 'access_token', required: true })
+  @ApiQuery({ name: 'user_id', required: true })
+  async getFrekuensiTujuan(
+    @Query('access_token') access_token: string,
+    @Query('user_id') user_id: string,
+  ) {
+    return this.adminService.getFrekuensiTujuanKunjungan(access_token, user_id);
+  }
+
+  @Get('statistik/asal-pengunjung')
+  @ApiQuery({ name: 'access_token', required: true })
+  @ApiQuery({ name: 'user_id', required: true })
+  async getAsalPengunjung(
+    @Query('access_token') access_token: string,
+    @Query('user_id') user_id: string,
+  ) {
+    return this.adminService.getAsalPengunjungTerbanyak(access_token, user_id);
+  }
+
+  @Get('statistik/perbandingan-stasiun')
+  @ApiQuery({ name: 'access_token', required: true })
+  @ApiQuery({ name: 'user_id', required: true })
+  async getPerbandinganStasiun(
+    @Query('access_token') access_token: string,
+    @Query('user_id') user_id: string,
+  ) {
+    return this.adminService.getPerbandinganStasiun(access_token, user_id);
   }
 
   private extractToken(authHeader: string): string {
@@ -273,5 +317,68 @@ export class AdminController {
       throw new UnauthorizedException('Token tidak ditemukan');
     }
     return authHeader.replace('Bearer ', '');
+  }
+
+  @Get('superadmin/insight-kebijakan')
+  @ApiQuery({ name: 'access_token', required: true })
+  @ApiQuery({ name: 'user_id', required: true })
+  async getInsight(
+    @Query('access_token') access_token: string,
+    @Query('user_id') user_id: string,
+  ) {
+    return this.adminService.getInsightKebijakan(access_token, user_id);
+  }
+
+  @Get('superadmin/wordcloud-tujuan')
+  @ApiQuery({ name: 'access_token', required: true })
+  @ApiQuery({ name: 'user_id', required: true })
+  async getWordCloud(
+    @Query('access_token') access_token: string,
+    @Query('user_id') user_id: string,
+  ) {
+    return this.adminService.getWordCloudTujuanKunjungan(access_token, user_id);
+  }
+
+  @Get('buku-tamu/export')
+  @ApiHeader({ name: 'user_id', required: true })
+  @ApiHeader({ name: 'access_token', required: true })
+  @ApiQuery({ name: 'format', enum: ['pdf', 'excel'], required: true })
+  @ApiQuery({ name: 'bulan', required: true })
+  @ApiQuery({ name: 'tahun', required: true })
+  async exportBukuTamu(
+    @Headers('access_token') access_token: string,
+    @Headers('user_id') user_id: string,
+    @Query(new ValidationPipe({ transform: true }))
+    query: ExportBukuTamuDto,
+    @Res({ passthrough: true }) res: ExpressResponse,
+  ) {
+    const { bulan, tahun, format } = query;
+
+    if (!access_token || !user_id) {
+      throw new BadRequestException('access_token dan user_id wajib diisi');
+    }
+
+    const file = await this.adminService.exportBukuTamu(
+      access_token,
+      user_id,
+      bulan,
+      tahun,
+      format,
+    );
+
+    const filename =
+      bulan === 'all'
+        ? `buku-tamu-${tahun}.${format}`
+        : `buku-tamu-${bulan}-${tahun}.${format}`;
+
+    res.set({
+      'Content-Disposition': `attachment; filename=${filename}`,
+      'Content-Type':
+        format === 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    res.send(file);
   }
 }

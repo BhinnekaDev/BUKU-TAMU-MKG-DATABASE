@@ -1,10 +1,11 @@
 import { AdminService } from '@/admin/admin.service';
+import { ExportBukuTamuDto } from '@/admin/dto/export-buku-tamu.dto';
 import { LoginAdminDto } from '@/admin/dto/login-admin.dto';
 import { LogoutAdminDto } from '@/admin/dto/logout-admin.dto';
 import { RegisterAdminDto } from '@/admin/dto/register-admin.dto';
 import { ResetPasswordDto } from '@/admin/dto/reset-password-admin.dto';
 import { UpdateAdminProfileDto } from '@/admin/dto/update-admin.dto';
-import { Request } from 'express';
+import { Response as ExpressResponse, Request } from 'express';
 export declare class AdminController {
     private readonly adminService;
     constructor(adminService: AdminService);
@@ -40,7 +41,7 @@ export declare class AdminController {
     resetPassword(dto: ResetPasswordDto, req: Request): Promise<{
         message: string;
     }>;
-    getBukuTamu(req: Request): Promise<any>;
+    getBukuTamu(access_token: string, user_id: string, period?: 'today' | 'week' | 'month', startDate?: string, endDate?: string, filterStasiunId?: string): Promise<any>;
     getHariIni(authorization: string, user_id: string): Promise<any>;
     getMingguIni(authorization: string, user_id: string): Promise<any>;
     getBulanIni(authorization: string, user_id: string): Promise<any>;
@@ -62,10 +63,21 @@ export declare class AdminController {
             Nama_Belakang_Pengunjung: any;
         }[];
     }[]>;
-    getStatistik(req: Request): Promise<{
-        mingguan: Record<string, number>;
-        bulanan: Record<string, number>;
-        tahunan: Record<string, number>;
-    }>;
+    getStatistikKunjungan(access_token: string, user_id: string): Promise<any>;
+    getFrekuensiTujuan(access_token: string, user_id: string): Promise<any[]>;
+    getAsalPengunjung(access_token: string, user_id: string): Promise<{
+        asal: string;
+        jumlah: number;
+    }[]>;
+    getPerbandinganStasiun(access_token: string, user_id: string): Promise<{
+        nama_stasiun: string;
+        jumlah: number;
+    }[]>;
     private extractToken;
+    getInsight(access_token: string, user_id: string): Promise<any>;
+    getWordCloud(access_token: string, user_id: string): Promise<{
+        kata: string;
+        jumlah: number;
+    }[]>;
+    exportBukuTamu(access_token: string, user_id: string, query: ExportBukuTamuDto, res: ExpressResponse): Promise<void>;
 }

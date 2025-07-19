@@ -1,19 +1,19 @@
 import { IsiBukuTamuDto } from '@/pengunjung/dto/isi-buku-tamu.dto';
-import { WilayahResponseDto } from '@/pengunjung/dto/wilayah-response.dto';
+import { SearchPengunjungDto } from '@/pengunjung/dto/search-pengunjung.dto';
 import { PengunjungService } from '@/pengunjung/pengunjung.service';
 import {
   BadRequestException,
   Body,
   Controller,
   Get,
-  Param,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { Request } from 'express';
 
 @Controller('pengunjung')
@@ -25,38 +25,38 @@ export class PengunjungController {
     return this.pengunjungService.getAllAsalPengunjung();
   }
 
-  @Get('provinces/:id')
-  @ApiResponse({
-    status: 200,
-    description: 'List of provinces',
-    type: [WilayahResponseDto],
-  })
-  async getProvinceById(
-    @Param('id') id: string,
-  ): Promise<WilayahResponseDto[]> {
-    const result = await this.pengunjungService.getProvinceById(id);
-    return Array.isArray(result) ? result : [result];
-  }
+  // @Get('provinces/:id')
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'List of provinces',
+  //   type: [WilayahResponseDto],
+  // })
+  // async getProvinceById(
+  //   @Param('id') id: string,
+  // ): Promise<WilayahResponseDto[]> {
+  //   const result = await this.pengunjungService.getProvinceById(id);
+  //   return Array.isArray(result) ? result : [result];
+  // }
 
-  @Get('regencies/:id')
-  async getRegencyById(@Param('id') id: string): Promise<WilayahResponseDto[]> {
-    const result = await this.pengunjungService.getRegencyById(id);
-    return [result];
-  }
+  // @Get('regencies/:id')
+  // async getRegencyById(@Param('id') id: string): Promise<WilayahResponseDto[]> {
+  //   const result = await this.pengunjungService.getRegencyById(id);
+  //   return [result];
+  // }
 
-  @Get('districts/:id')
-  async getDistrictById(
-    @Param('id') id: string,
-  ): Promise<WilayahResponseDto[]> {
-    const result = await this.pengunjungService.getDistrictById(id);
-    return [result];
-  }
+  // @Get('districts/:id')
+  // async getDistrictById(
+  //   @Param('id') id: string,
+  // ): Promise<WilayahResponseDto[]> {
+  //   const result = await this.pengunjungService.getDistrictById(id);
+  //   return [result];
+  // }
 
-  @Get('villages/:id')
-  async getVillageById(@Param('id') id: string): Promise<WilayahResponseDto[]> {
-    const result = await this.pengunjungService.getVillageById(id);
-    return [result];
-  }
+  // @Get('villages/:id')
+  // async getVillageById(@Param('id') id: string): Promise<WilayahResponseDto[]> {
+  //   const result = await this.pengunjungService.getVillageById(id);
+  //   return [result];
+  // }
 
   @Get()
   async getAllStasiun() {
@@ -64,12 +64,19 @@ export class PengunjungController {
   }
 
   @Get('jumlah')
-  async getJumlahPengunjung() {
-    try {
-      return await this.pengunjungService.getJumlahPengunjung();
-    } catch (error) {
-      throw error;
+  @ApiQuery({ name: 'id_stasiun', required: true, type: String })
+  async getJumlahPengunjung(@Query('id_stasiun') id_stasiun: string) {
+    if (!id_stasiun) {
+      throw new BadRequestException('Parameter id_stasiun wajib diisi.');
     }
+
+    return this.pengunjungService.getJumlahPengunjung(id_stasiun);
+  }
+
+  @Post('search')
+  @ApiBody({ type: SearchPengunjungDto })
+  async searchPengunjung(@Body() dto: SearchPengunjungDto) {
+    return this.pengunjungService.searchPengunjung(dto);
   }
 
   @Post('isi-buku-tamu')
@@ -96,41 +103,22 @@ export class PengunjungController {
           type: 'string',
           enum: [
             'BMKG',
-            'Dinas',
             'Universitas',
-            'Media',
-            'Lembaga Non Pemerintahan',
+            'Pemerintah Pusat/Pemerintah Daerah',
             'Umum',
           ],
-          example: 'Dinas',
+          example: 'BMKG',
         },
-        Keterangan_Asal_Pengunjung: {
+        Asal_Instansi: {
           type: 'string',
           example: 'Perwakilan dari Dishub Jawa Barat',
         },
         waktu_kunjungan: {
           type: 'string',
           example: 'Senin, 10 Juni 2024, 14.30',
+          description: 'Waktu kunjungan dalam format yang mudah dibaca',
         },
-        alamat: {
-          type: 'string',
-          example: JSON.stringify({
-            province_id: '32',
-            regency_id: '3204',
-            district_id: '3204190',
-            village_id: '3204190005',
-          }),
-        },
-
-        alamat_detail: {
-          type: 'string',
-          example: JSON.stringify({
-            rt: '01',
-            rw: '05',
-            kode_pos: '40285',
-            nama_jalan: 'Jl. Sukajadi No. 123',
-          }),
-        },
+        Alamat_Lengkap: { type: 'string', example: 'Alamat Jalan' },
 
         tanda_tangan: {
           type: 'string',

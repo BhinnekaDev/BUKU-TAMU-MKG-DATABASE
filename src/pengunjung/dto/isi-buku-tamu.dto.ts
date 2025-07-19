@@ -1,53 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class AlamatDto {
-  @ApiProperty()
-  @IsString()
-  province_id: string;
-
-  @ApiProperty()
-  @IsString()
-  regency_id: string;
-
-  @ApiProperty()
-  @IsString()
-  district_id: string;
-
-  @ApiProperty()
-  @IsString()
-  village_id: string;
-}
-
-export class AlamatDetailDto {
-  @ApiProperty({ example: '01' })
-  @IsNotEmpty()
-  @IsString()
-  rt: string;
-
-  @ApiProperty({ example: '05' })
-  @IsNotEmpty()
-  @IsString()
-  rw: string;
-
-  @ApiProperty({ example: '40285' })
-  @IsNotEmpty()
-  @IsString()
-  kode_pos: string;
-
-  @ApiProperty({ example: 'Jl. Sukajadi No. 123' })
-  @IsNotEmpty()
-  @IsString()
-  nama_jalan: string;
-}
-
 export enum AsalPengunjung {
   BMKG = 'BMKG',
-  Dinas = 'Dinas',
-  Universitas = 'Universitas',
-  Media = 'Media',
-  Lembaga_Non_Pemerintahan = 'Lembaga Non Pemerintahan',
+  Pemerintah_Pusat_atau_Pemerintah_Daerah = 'Pemerintah Pusat/Pemerintah Daerah',
   Umum = 'Umum',
+  Universitas = 'Universitas',
 }
 
 export class IsiBukuTamuDto {
@@ -66,15 +24,6 @@ export class IsiBukuTamuDto {
   @IsNotEmpty()
   @IsString()
   id_stasiun: string;
-
-  @ApiProperty({
-    description: 'Waktu kunjungan dalam format "Hari, DD MMMM YYYY, HH.mm"',
-    example: 'Senin, 10 Juni 2024, 14.30',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  waktu_kunjungan?: string;
 
   @ApiProperty({
     description: 'Nama depan pengunjung',
@@ -121,22 +70,16 @@ export class IsiBukuTamuDto {
   })
   @IsOptional()
   @IsString()
-  Keterangan_Asal_Pengunjung?: string;
+  Asal_Instansi?: string;
 
   @ApiProperty({
-    description: 'Alamat dalam bentuk JSON string',
-    example:
-      '{"province_id":"32","regency_id":"3204","district_id":"3204190","village_id":"3204190005"}',
-    required: false,
+    example: 'waktu kunjungan',
+    description: 'Senin, 10 Juni 2024, 14.30',
   })
-  @IsString()
-  alamat?: string;
-  @ApiProperty({
-    description: 'Detail alamat dalam bentuk JSON string',
-    example:
-      '{"rt":"01","rw":"05","kode_pos":"40285","nama_jalan":"Jl. Sukajadi No. 123"}',
-    required: false,
-  })
-  @IsString()
-  alamat_detail?: string;
+  @IsNotEmpty()
+  waktu_kunjungan: string;
+
+  @ApiProperty({ example: 'Alamat Lengkap', description: 'Alamat Lengkap' })
+  @IsNotEmpty()
+  Alamat_Lengkap: string;
 }
