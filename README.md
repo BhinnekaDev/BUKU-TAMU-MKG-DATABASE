@@ -1,98 +1,122 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 📌 Buku Tamu BMKG – API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+*Backend API untuk pengelolaan buku tamu dan data pengunjung BMKG.*  
+Dibangun modular & scalable menggunakan **NestJS** dan **Supabase**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> Digunakan untuk mencatat kunjungan, mengelola data admin, dan menampilkan statistik dashboard.
 
-## Description
+[![Stars](https://img.shields.io/github/stars/marco-sihombing/repo?style=flat-square)](https://github.com/marco-sihombing/repo/stargazers)
+[![Forks](https://img.shields.io/github/forks/marco-sihombing/repo?style=flat-square)](https://github.com/marco-sihombing/repo/network)
+[![Last Commit](https://img.shields.io/github/last-commit/marco-sihombing/repo?style=flat-square)](https://github.com/marco-sihombing/repo/commits/main)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+![Platform](https://img.shields.io/badge/platform-API-blue?style=flat-square)
+![NestJS](https://img.shields.io/badge/NestJS-9-red?logo=nestjs&style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-4.x-3178C6?logo=typescript&logoColor=white&style=flat-square)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?logo=supabase&style=flat-square)
 
-## Project setup
+---
+
+## 🚀 Fitur
+
+| Modul                   | Deskripsi                                                                 |
+| ----------------------- | ------------------------------------------------------------------------- |
+| **Pengunjung**          | Mendapatkan data asal, stasiun, jumlah pengunjung, pencarian, isi buku tamu |
+| **Admin**               | Login, profil, update profil, reset password                              |
+| **Buku Tamu**           | Statistik & daftar buku tamu (filter tanggal/periode)                     |
+| **Dashboard**           | Statistik ringkas berdasarkan peran admin                                |
+| **Upload File**         | Upload tanda tangan & foto admin ke Supabase Storage                      |
+| **Swagger API Docs**    | Dokumentasi API otomatis di `/api`                                        |
+
+---
+
+## ⚙ Teknologi
+
+| Layer     | Stack                                           |
+| --------- | ----------------------------------------------- |
+| Backend   | NestJS, TypeScript, Supabase (PostgreSQL, Auth) |
+| Deploy    | Railway, Docker, Vercel (opsional)              |
+
+---
+
+## 📦 Instalasi
 
 ```bash
+# Clone repo
+$ git clone https://github.com/username/repo.git
+$ cd repo
+
+# Install dependencies
 $ npm install
 ```
 
-## Compile and run the project
+---
+
+## 🔐 .env
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+---
+
+📜 API Endpoint
+
+📍 Pengunjung
+| Method | Endpoint          | Deskripsi                                        |
+| ------ | ----------------- | ------------------------------------------------ |
+| POST   | `/login`          | Login admin (`LoginAdminDto`)                    |
+| GET    | `/profile`        | Profil admin (header: `access_token`, `user_id`) |
+| PUT    | `/update-profile` | Update profil + upload foto                      |
+| POST   | `/reset-password` | Reset password                                   |
+
+Contoh isi-buku-tamu (multipart/form-data):
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+{
+  "tujuan": "Mengikuti rapat koordinasi",
+  "id_stasiun": "b0ae3f1d-901a-4530-a5fb-9c63c872d33e",
+  "Nama_Depan_Pengunjung": "Ahmad",
+  "Nama_Belakang_Pengunjung": "Hidayat",
+  "Email_Pengunjung": "ahmad.hidayat@example.com",
+  "No_Telepon_Pengunjung": "081234567890",
+  "Asal_Pengunjung": "BMKG",
+  "Asal_Instansi": "Dishub Jawa Barat",
+  "waktu_kunjungan": "Senin, 10 Juni 2024, 14.30",
+  "Alamat_Lengkap": "Jl. Merdeka No.1",
+  "tanda_tangan": "(file JPG/PNG)"
+}
 ```
 
-## Run tests
+📍 Admin
+| Method | Endpoint          | Deskripsi                                        |
+| ------ | ----------------- | ------------------------------------------------ |
+| POST   | `/login`          | Login admin (`LoginAdminDto`)                    |
+| GET    | `/profile`        | Profil admin (header: `access_token`, `user_id`) |
+| PUT    | `/update-profile` | Update profil + upload foto                      |
+| POST   | `/reset-password` | Reset password                                   |
 
-```bash
-# unit tests
-$ npm run test
+📍 Buku Tamu
+| Method | Endpoint                | Deskripsi                                                                    |
+| ------ | ----------------------- | ---------------------------------------------------------------------------- |
+| GET    | `/buku-tamu`            | List buku tamu (filter: `period`, `startDate`, `endDate`, `filterStasiunId`) |
+| GET    | `/buku-tamu/hari-ini`   | Buku tamu hari ini                                                           |
+| GET    | `/buku-tamu/minggu-ini` | Buku tamu minggu ini                                                         |
+| GET    | `/buku-tamu/bulan-ini`  | Buku tamu bulan ini                                                          |
 
-# e2e tests
-$ npm run test:e2e
+📍 Dashboard
+| Method | Endpoint     | Deskripsi                                   |
+| ------ | ------------ | ------------------------------------------- |
+| GET    | `/dashboard` | Statistik dashboard berdasarkan peran admin |
 
-# test coverage
-$ npm run test:cov
-```
+---
 
-## Deployment
+🧪 Script Penting
+| Perintah            | Fungsi                                    |
+| ------------------- | ----------------------------------------- |
+| `npm run start`     | Jalankan server dalam mode production     |
+| `npm run start:dev` | Jalankan server dalam mode development    |
+| `npm run build`     | Build aplikasi ke direktori `/dist`       |
+| `npm run lint`      | Periksa dan perbaiki format kode otomatis |
+| `npm run test`      | Unit testing                              |
+| `npm run test:e2e`  | End-to-end testing                        |
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+---
