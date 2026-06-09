@@ -854,13 +854,9 @@ export class AdminService {
         );
       }
 
-      if (!bukuTamu.ID_Stasiun) {
-        throw new ForbiddenException('Data buku tamu tidak memiliki stasiun');
-      }
-
       if (String(adminData.ID_Stasiun) !== String(bukuTamu.ID_Stasiun)) {
         throw new ForbiddenException(
-          `Admin stasiun ${adminData.ID_Stasiun} tidak dapat menghapus data dari stasiun ${bukuTamu.ID_Stasiun}`,
+          'Anda tidak memiliki akses untuk menghapus data buku tamu ini',
         );
       }
     }
