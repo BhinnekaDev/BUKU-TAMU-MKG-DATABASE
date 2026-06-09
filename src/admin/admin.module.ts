@@ -1,9 +1,16 @@
-import { Module } from '@nestjs/common';
-import { AdminController } from './admin.controller';
-import { AdminService } from './admin.service';
+import { AdminController } from '@/admin/admin.controller';
+import { AdminService } from '@/admin/admin.service';
 
+import { SupabaseModule } from '@/supabase/supabase.module';
+import { Module } from '@nestjs/common';
+
+//*** Modul autentikasi Semua ***
 @Module({
-  providers: [AdminService],
+  //*** Import modul Supabase ***
+  imports: [SupabaseModule],
+  //*** Controller dan Service untuk Admin ***
   controllers: [AdminController],
+  //*** Provider untuk AdminService ***
+  providers: [AdminService],
 })
 export class AdminModule {}

@@ -1,12 +1,21 @@
 import { AdminModule } from '@/admin/admin.module';
+import { PengunjungModule } from '@/pengunjung/pengunjung.module';
+
 import { AppController } from '@/app.controller';
 import { AppService } from '@/app.service';
-import { PengunjungModule } from '@/pengunjung/pengunjung.module';
+import { SupabaseService } from '@/supabase/supabase.service';
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [AdminModule, PengunjungModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    AdminModule,
+    PengunjungModule,
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, SupabaseService],
 })
 export class AppModule {}

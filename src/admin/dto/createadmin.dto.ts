@@ -12,43 +12,33 @@ export enum PeranAdminEnum {
   SUPERADMIN = 'Superadmin',
 }
 
-export class UpdateAdminDto {
+export class CreateAdminDto {
   @ApiProperty({ example: 'Budi', description: 'Nama depan admin' })
-  @IsOptional()
   @IsString()
-  nama_depan?: string;
+  nama_depan: string;
 
-  @ApiProperty({
-    example: 'Santoso',
-    description: 'Nama belakang admin',
-  })
-  @IsOptional()
+  @ApiProperty({ example: 'Santoso', description: 'Nama belakang admin' })
   @IsString()
-  nama_belakang?: string;
-
-  @ApiProperty({
-    example: 'admin@example.com',
-    description: 'Email admin',
-  })
   @IsOptional()
+  nama_belakang: string;
+
+  @ApiProperty({ example: 'admin@example.com', description: 'Email admin' })
   @IsEmail()
-  email?: string;
+  email: string;
 
   @ApiProperty({
     example: 'password123',
-    description: 'Password baru admin minimal 6 karakter',
+    description: 'Password admin minimal 6 karakter',
   })
-  @IsOptional()
   @IsString()
   @MinLength(6)
-  password?: string;
+  password: string;
 
   @ApiProperty({
     example: 'password123',
     description: 'Konfirmasi password admin',
   })
   @IsString()
-  @IsOptional()
   confirmPassword: string;
 
   @ApiProperty({
@@ -56,13 +46,13 @@ export class UpdateAdminDto {
     example: PeranAdminEnum.ADMIN,
     description: 'Peran admin',
   })
-  @IsOptional()
   @IsEnum(PeranAdminEnum)
-  peran?: PeranAdminEnum;
+  peran: PeranAdminEnum;
 
   @ApiProperty({
     example: '123',
     description: 'ID stasiun (hanya untuk Admin, bukan Superadmin)',
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -71,7 +61,8 @@ export class UpdateAdminDto {
   @ApiProperty({
     type: 'string',
     format: 'binary',
-    description: 'Foto admin baru (opsional)',
+    required: false,
+    description: 'Foto admin (opsional)',
   })
   @IsOptional()
   foto?: any;
